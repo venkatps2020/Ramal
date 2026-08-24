@@ -108,18 +108,25 @@ export function runPrediction(input: PredictionInput): PredictionResult {
   });
 
   const timing = computeTiming(judgement.resultFigure, chart);
+  const timingPerPlace = timing.matches
+    .map((m) => `place ${m.place}: ${m.years}y ${m.months}m ${m.days}d`)
+    .join("; ");
 
   trace.push({
     label: "Timing lookup",
-    detail: timing.unavailable
-      ? "Result figure did not match any Sthir Kundali figure -- timing unavailable."
-      : `Result figure matches Sthir house with Timings Number ${timing.timingNumber}. Found in ${timing.matches.length} place(s) of this chart: ${timing.matches.map((m) => m.place).join(", ") || "none"}.`,
+    detail:
+      (timing.unavailable
+        ? "Result figure did not match any Sthir Kundali figure -- timing unavailable."
+        : `Result figure matches Sthir house with Timings Number ${timing.timingNumber}. Found in ${timing.matches.length} place(s) of this chart: ${timing.matches.map((m) => m.place).join(", ") || "none"}.`) +
+      (timing.matches.length > 1 ? ` Matched more than one place -- shown separately per place: ${timingPerPlace}.` : ""),
     output: timing,
   });
 
   trace.push({
     label: "Timing normalization",
-    detail: "30 days = 1 month, 12 months = 1 year (with carry).",
+    detail:
+      "30 days = 1 month, 12 months = 1 year (with carry)." +
+      (timing.matches.length > 1 ? ` Summed across ${timing.matches.length} matched places (${timingPerPlace}) before normalizing.` : ""),
     output: { years: timing.totalYears, months: timing.totalMonths, days: timing.totalDays },
   });
 

@@ -64,6 +64,39 @@ describe("runPrediction -- workbook benchmark (cards 2,8,4,9; house 7; Nirgam)",
   });
 });
 
+describe("runPrediction -- timing trace with multiple matched places", () => {
+  // Draw [1,1,1,2], House 1, Agam: a real case where the result figure
+  // coincidentally appears at two different places (7 and 9) in the same
+  // 16-place chart, each contributing a different Days/Months/Years entry
+  // from the Timings block before they're summed and normalized.
+  const result = runPrediction({
+    draw: { figureIds: [1, 1, 1, 2] },
+    questionHouse: 1,
+    questionType: "AGAM",
+  });
+
+  it("finds more than one matched place", () => {
+    expect(result.timing?.matches).toEqual([
+      { place: 7, days: 0, months: 8, years: 1 },
+      { place: 9, days: 0, months: 2, years: 2 },
+    ]);
+  });
+
+  it("lists each matched place separately in the Timing lookup trace step", () => {
+    const step = result.trace.find((s) => s.label === "Timing lookup");
+    expect(step?.detail).toContain("Matched more than one place -- shown separately per place:");
+    expect(step?.detail).toContain("place 7: 1y 8m 0d");
+    expect(step?.detail).toContain("place 9: 2y 2m 0d");
+  });
+
+  it("shows the per-place breakdown in the Timing normalization trace step too", () => {
+    const step = result.trace.find((s) => s.label === "Timing normalization");
+    expect(step?.detail).toContain("Summed across 2 matched places");
+    expect(step?.detail).toContain("place 7: 1y 8m 0d");
+    expect(step?.detail).toContain("place 9: 2y 2m 0d");
+  });
+});
+
 describe("runPrediction -- guard short-circuits", () => {
   it("returns CANT_PREDICT_TODAY without a judgement when Place 1 is all-same", () => {
     const result = runPrediction({
