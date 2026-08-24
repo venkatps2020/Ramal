@@ -4,9 +4,10 @@ import { useState } from "react";
 import { runPrediction } from "@/lib/engines/predict";
 import { patternsEqual } from "@/lib/engines/figure";
 import { FIGURES } from "@/lib/data/figures";
-import { HOUSE_INTERPRETATIONS } from "@/lib/data/houses";
 import { saveHistoryEntry } from "@/lib/history";
 import FigureGlyph from "@/components/FigureGlyph";
+import HouseCombobox from "@/components/HouseCombobox";
+import HouseDetailPanel from "@/components/HouseDetailPanel";
 import type { AgamNirgam, PredictionResult } from "@/lib/types";
 
 const STATUS_LABEL: Record<PredictionResult["status"], string> = {
@@ -36,6 +37,7 @@ export default function NewPredictionPage() {
   const [questionHouse, setQuestionHouse] = useState(7);
   const [questionType, setQuestionType] = useState<AgamNirgam>("AGAM");
   const [shortTiming, setShortTiming] = useState(false);
+  const [houseDetailOpen, setHouseDetailOpen] = useState(false);
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [traceOpen, setTraceOpen] = useState(false);
 
@@ -122,17 +124,16 @@ export default function NewPredictionPage() {
         <div className="flex flex-wrap gap-4">
           <div>
             <label className="block text-xs uppercase tracking-wide text-black/50 dark:text-white/50">House</label>
-            <select
-              value={questionHouse}
-              onChange={(e) => setQuestionHouse(Number(e.target.value))}
-              className="mt-1 rounded border border-black/15 bg-transparent px-2 py-1.5 text-sm dark:border-white/15"
+            <div className="mt-1">
+              <HouseCombobox value={questionHouse} onChange={setQuestionHouse} />
+            </div>
+            <button
+              type="button"
+              onClick={() => setHouseDetailOpen((v) => !v)}
+              className="mt-1 text-xs font-medium uppercase tracking-wide text-[#3b4a6b] dark:text-[#93a6d8]"
             >
-              {HOUSE_INTERPRETATIONS.map((h) => (
-                <option key={h.id} value={h.id}>
-                  House {h.id} -- {h.primaryTheme}
-                </option>
-              ))}
-            </select>
+              {houseDetailOpen ? "Hide house detail" : "Show house detail"}
+            </button>
           </div>
           <div>
             <label className="block text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Type</label>
@@ -170,6 +171,7 @@ export default function NewPredictionPage() {
             </button>
           </div>
         </div>
+        {houseDetailOpen && <HouseDetailPanel houseId={questionHouse} />}
       </section>
 
       <button

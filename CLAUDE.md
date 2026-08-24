@@ -22,7 +22,10 @@ src/
     layout/Navbar.tsx
     FigureGlyph.tsx           -- Renders a 4-symbol pattern as bindu/rekha marks
     RecentPredictions.tsx
+    HouseCombobox.tsx          -- Searchable House picker (see "House search" below)
+    HouseDetailPanel.tsx       -- Direct vs. Interpretive breakdown for one house
   lib/
+    house-search.ts            -- Keyword ranking across all "12 Houses" sheet fields
     engines/
       figure.ts                -- addBit/addFigure (4-symbol XOR-style addition)
       kundali.ts                -- 16-place construction + validation guards
@@ -240,6 +243,34 @@ specifies Kharij/Munqalib for both. The regression test in
 `judgement.test.ts` ("R33 and R39 test Kharij/Munqalib...") exists
 specifically to catch this class of transcription slip again.
 
+## House search (`lib/house-search.ts`)
+
+The "12 Houses" sheet has far more text per house than the old plain
+`<select>` surfaced (only `primaryTheme`) -- `directItems`,
+`expandedItems`, `healthBody`, `familyRelationships`, `moneyMaterial`,
+`workCareer`, `travelMovement`, `psychologicalSpiritual`, `specialDerived`,
+`primaryQuestionUse`, `secondarySupportingHouses`. `HouseCombobox` replaces
+the select with keyword search across all of it; `HouseDetailPanel` shows
+the full breakdown for whichever house is selected, with Direct fields
+(green badge) visibly separated from Expanded/Special-Derived fields
+(amber "Interpretive" badge) -- matching master spec §13's explicit
+requirement not to blur direct and derived material together.
+
+**Design note that mattered in practice, not just in theory**: several
+`expandedItems`/`specialDerived` entries contain the source's own hedges --
+e.g. House 1 says its money house is "not the principal wealth house,"
+House 8 says its death association should be "use[d] cautiously and never
+as a literal standalone prediction." A flat keyword search would let those
+hedge sentences outrank an actual match on the same word. `searchHouses()`
+handles this by ranking `primaryTheme`/`directItems`/`primaryQuestionUse`
+(score 10) above the other 8 fields (score 5) rather than treating all
+text as equal, and always shows the matched snippet so the practitioner
+sees *why* a house was suggested instead of trusting a black-box rank.
+Verified in `house-search.test.ts` against the real source text (not
+invented examples): searching "thief" surfaces House 12 (`Fear of thief`,
+a direct item) at score 10; searching "cautiously" surfaces House 8 at
+score 5, correctly tagged interpretive.
+
 ## Deferred by owner decision
 
 **Dhruvank is out of scope.** `lib/data/questions.ts` imports the
@@ -266,7 +297,7 @@ the project's implementation-plan artifact for the full rationale.
 npm run dev      # Dev server at http://localhost:3000
 npm run build    # Production build
 npm run start    # Serve production build
-npm test         # Run all 80 Vitest tests
+npm test         # Run all 87 Vitest tests
 npm run test:watch
 npm run validate:oracle  # Independent Excel-formula cross-check, all 1,572,864 cases (~15s)
 ```
