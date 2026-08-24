@@ -313,6 +313,34 @@ against. Generated programmatically from the pptx (not hand-transcribed)
 via a one-off extraction script, the same discipline used for every other
 data file in this project.
 
+## `suppressHydrationWarning` on both `<html>` and `<body>` (`layout.tsx`)
+
+Two separate, confirmed causes, not one -- don't remove either without
+re-diagnosing:
+
+1. **`<html>`**: the dark-mode flash-prevention script adds `class="dark"`
+   synchronously, before React hydrates. Reproduced by emulating a dark
+   `colorScheme` in Playwright; the diff was exactly `<html lang="en"
+   className="dark">`.
+2. **`<body>`**: a browser (Comet, in the reported case) injects its own
+   attributes (`inject_newsvd`, `inject_vt_svd`) onto `<body>` before
+   hydration -- confirmed absent from this entire codebase (`grep` came
+   back empty), then reproduced deliberately by injecting those exact
+   attribute names via Playwright's `addInitScript` (which runs before any
+   page script, the same timing a real extension gets) and confirming zero
+   hydration warnings once the attribute was present, matching the real
+   report's own diff verbatim.
+
+Both are the officially-recommended fix for their respective failure mode
+(theme-flash-prevention scripts and browser-extension DOM injection are
+Next.js's own two documented causes for this warning), scoped to the one
+element actually being modified rather than suppressed globally. If a
+*third* hydration report comes in, verify with the same method before
+assuming it's covered: reproduce it deliberately (dark-mode emulation or
+`addInitScript` attribute injection, whichever fits), confirm the fix
+resolves that exact reproduction, don't just add `suppressHydrationWarning`
+somewhere and hope.
+
 ## Deferred by owner decision
 
 **Dhruvank is out of scope.** `lib/data/questions.ts` imports the
