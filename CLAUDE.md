@@ -294,10 +294,19 @@ the project's implementation-plan artifact for the full rationale.
 ## Dev commands
 
 ```bash
-npm run dev      # Dev server at http://localhost:3000
+npm run dev      # Dev server at http://localhost:3001
 npm run build    # Production build
-npm run start    # Serve production build
+npm run start    # Serve production build (also port 3001)
 npm test         # Run all 87 Vitest tests
 npm run test:watch
 npm run validate:oracle  # Independent Excel-formula cross-check, all 1,572,864 cases (~15s)
 ```
+
+**Port is pinned to 3001, not Next's default 3000.** Nameology also
+defaults to 3000 and is a PWA with its own service worker (`sw.js`,
+offline caching) -- if both apps ever run on the same port, the browser
+treats them as the same origin, and Nameology's service worker can keep
+serving cached Nameology content at `localhost:3000` even when Ramal's
+server is what's actually running there. Pinning Ramal to 3001 avoids the
+origin collision entirely rather than requiring a manual service-worker
+unregister every time it recurs.
