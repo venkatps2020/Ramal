@@ -15,10 +15,11 @@ describe("searchHouses", () => {
     expect(results[0].score).toBe(100);
   });
 
-  it("finds House 12 for a direct-item keyword like 'thief' ('Fear of thief', directItems)", () => {
+  it("finds House 12 for a keyword like 'thief' ('Fear of thief', specialDerived)", () => {
     const results = searchHouses("thief");
     expect(results[0].house.id).toBe(12);
-    expect(results[0].score).toBe(10);
+    expect(results[0].score).toBe(5);
+    expect(results[0].matchedField).toContain("interpretive");
   });
 
   it("ranks a strong-field match above a weak-field match for the same query", () => {
@@ -29,13 +30,12 @@ describe("searchHouses", () => {
     expect(scores).toEqual([...scores].sort((a, b) => b - a));
   });
 
-  it("a term appearing only in expandedItems/specialDerived scores weak-tier, not strong-tier", () => {
-    // House 8's specialDerived text ("...use cautiously and never as a
-    // literal standalone prediction") is the source's own hedge language --
-    // "cautiously" doesn't appear in any of House 8's strong fields
-    // (theme/directItems/primaryQuestionUse), so it must rank as a weak (5),
-    // not strong (10), match.
-    const results = searchHouses("cautiously");
+  it("a term appearing only in specialDerived scores weak-tier, not strong-tier", () => {
+    // House 8's specialDerived text ("...Possibilities of love") is the only
+    // place "possibilities" appears -- it doesn't occur in any of House 8's
+    // strong fields (theme/directItems/primaryQuestionUse), so it must rank
+    // as a weak (5), not strong (10), match.
+    const results = searchHouses("possibilities");
     const house8 = results.find((r) => r.house.id === 8);
     expect(house8).toBeDefined();
     expect(house8?.score).toBe(5);

@@ -248,31 +248,65 @@ specifically to catch this class of transcription slip again.
 
 ## House search (`lib/house-search.ts`)
 
-The "12 Houses" sheet has far more text per house than the old plain
-`<select>` surfaced (only `primaryTheme`) -- `directItems`,
-`expandedItems`, `healthBody`, `familyRelationships`, `moneyMaterial`,
-`workCareer`, `travelMovement`, `psychologicalSpiritual`, `specialDerived`,
-`primaryQuestionUse`, `secondarySupportingHouses`. `HouseCombobox` replaces
-the select with keyword search across all of it; `HouseDetailPanel` shows
-the full breakdown for whichever house is selected, with Direct fields
-(green badge) visibly separated from Expanded/Special-Derived fields
-(amber "Interpretive" badge) -- matching master spec §13's explicit
-requirement not to blur direct and derived material together.
+`HOUSE_INTERPRETATIONS` (`lib/data/houses.ts`) is generated from
+`Ramal_12_Houses_Clean_Consolidated_v1.xlsx` (sheet "12 Houses - Summary"),
+**not** the older "12 Houses" sheet of `Ramal Calculation.xlsx` -- see
+"House data source" below for why and what changed. `HouseCombobox`
+surfaces keyword search across every field; `HouseDetailPanel` shows the
+full breakdown for whichever house is selected, with Direct fields (green
+badge) visibly separated from Interpretive fields (amber badge) --
+matching master spec §13's explicit requirement not to blur direct and
+derived material together.
 
-**Design note that mattered in practice, not just in theory**: several
-`expandedItems`/`specialDerived` entries contain the source's own hedges --
-e.g. House 1 says its money house is "not the principal wealth house,"
-House 8 says its death association should be "use[d] cautiously and never
-as a literal standalone prediction." A flat keyword search would let those
-hedge sentences outrank an actual match on the same word. `searchHouses()`
-handles this by ranking `primaryTheme`/`directItems`/`primaryQuestionUse`
-(score 10) above the other 8 fields (score 5) rather than treating all
-text as equal, and always shows the matched snippet so the practitioner
-sees *why* a house was suggested instead of trusting a black-box rank.
-Verified in `house-search.test.ts` against the real source text (not
-invented examples): searching "thief" surfaces House 12 (`Fear of thief`,
-a direct item) at score 10; searching "cautiously" surfaces House 8 at
-score 5, correctly tagged interpretive.
+`searchHouses()` ranks `primaryTheme`/`directItems`/`primaryQuestionUse`
+(score 10, "strong" fields) above the other 7 fields (score 5, "weak" --
+`healthBody`, `familyRelationships`, `moneyMaterial`, `workCareer`,
+`travelMovement`, `psychologicalSpiritual`, `specialDerived`;
+`expandedItems` is currently always empty, see below) rather than treating
+all text as equal, and always shows the matched snippet so the
+practitioner sees *why* a house was suggested instead of trusting a
+black-box rank. Verified in `house-search.test.ts` against the real
+source text (not invented examples): searching "thief" surfaces House 12
+(`Fear of thief`, now in `specialDerived`) at score 5; searching
+"possibilities" surfaces House 8's `specialDerived` ("Possibilities of
+love") at score 5, correctly tagged interpretive.
+
+## House data source (`lib/data/houses.ts`)
+
+As of 2026-08-24, house-meaning content comes from
+`Ramal_12_Houses_Clean_Consolidated_v1.xlsx` (repo-sibling directory, not
+checked into `ramal-app/`), an audited, explicitly de-duplicated 12-house
+reference the owner supplied specifically to replace the older, messier
+"12 Houses" sheet content. Its own `Source & Notes`/`README` sheets
+document real corrections this fixes, verified present in the regenerated
+data:
+
+- **House 4 = Father, House 10 = Mother** for this Ramal lineage (not the
+  usual Vedic allocation). The old data had this backwards/blended --
+  House 4's `familyRelationships` used to read "Mother; father in some
+  Ramal-derived interpretations...", House 10's read a mis-slotted
+  livelihood sentence instead of anything about a parent at all.
+- **House 12's canonical figure is Uputul Kharij**, not Nukhtul Dakhil --
+  the PPT slide text itself is inconsistent here; the workbook's audited
+  cross-reference resolves it this way (already matched the old data, so
+  no change needed, but now explicitly documented instead of assumed).
+
+Mapping from the workbook's "12 Houses - Summary" columns onto
+`HouseInterpretation`:
+
+| Workbook column | Field |
+|---|---|
+| Ramal Figure | `figureName` |
+| Core Theme | `primaryTheme`, and also `directItems` (theme split on `" / "` into short tags, e.g. "Partner / Marriage / Business Partnership" -> "Partner; Marriage; Business Partnership") |
+| Health / Body ... Primary Question Use | the matching 8 category fields, each bullet-list cell (`"• a\n• b"`) joined `"a; b"` to match the existing `splitItems()` convention |
+| *(none)* | `expandedItems` -- always `""` now. The old field was exactly the redundant, not-properly-separated derived layer this consolidated source's own editorial rules ("duplicates removed", "derived items not silently promoted to direct rules") were built to eliminate; `HouseDetailPanel`'s `BulletList` already had a graceful empty-state ("Nothing beyond what's already shown above.") from the earlier dedup work, so no UI change was needed. |
+| *(none)* | `secondarySupportingHouses` -- kept verbatim from the old data; the new source doesn't cover cross-house references, and none was supplied to replace it with. |
+
+Regenerating: re-run the extraction (`openpyxl`, `data_only=True`, sheet
+`"12 Houses - Summary"`, rows 2-13) and hand-verify the diff against this
+table before replacing `houses.ts` -- do not regenerate from the `"12
+Houses - List"` sheet's per-house blocks, they're the same content
+reformatted, not a second source to cross-check against.
 
 ## Prashna Kundali display (`PrashnaKundaliChart.tsx`)
 
@@ -291,11 +325,10 @@ Row 3 (4-wide):  14  |  16  15  |  13
                  Places 13-16 -- Jaydat / Jawaydat
 ```
 
-Row 3 is rendered as a plain 4-column row rather than attempting the
-source's literal converging-triangle line art -- the source groups it
-1-2-1 (14 alone, 16+15 paired, 13 alone), which a flat left-to-right
-4-column row already preserves correctly; a center divider would have
-misrepresented it as a 2-2 split instead.
+Row 3 is rendered as two stacked rows (14, 13 on top; 16, 15 below,
+narrowed and centered) rather than attempting the source's literal
+converging-triangle line art or a single flat 4-column row -- per owner
+request, to keep 15/16 visually close together underneath 13/14.
 
 ## House PPT notes (`lib/data/house-ppt-notes.ts`)
 
@@ -303,15 +336,21 @@ A second, separate house-description source: `1 to 16 - updated
 18.1.24.pptx` slides 24-35 (Houses 1-12), each slide's own narrative
 prose, phrase-split on its line breaks and preserved verbatim (including
 the source's own typos, e.g. House 2's "condition of the sick perso,n").
+Generated programmatically from the pptx (not hand-transcribed) via a
+one-off extraction script, the same discipline used for every other data
+file in this project.
+
 Authority is the PPT (source/conceptual per master spec §2), distinct
-from both the Excel-sourced Direct and Expanded/Interpretive tiers already
-in `HouseDetailPanel` -- shown as a third, separately-badged ("PPT
-source"), collapsed-by-default sub-section rather than merged into either
-existing tier, since blurring three different-authority sources together
-would be exactly the kind of silent conflation the master spec warns
-against. Generated programmatically from the pptx (not hand-transcribed)
-via a one-off extraction script, the same discipline used for every other
-data file in this project.
+from the Excel-sourced Direct tier. Originally shown as its own
+separately-badged, collapsed-by-default sub-section; per owner request
+("What this house covers and PPT source are same, merge them") it's now
+merged into the "What this house covers" section alongside `directItems`,
+with both source tiers still individually badged (green "Direct", blue
+"PPT · slide N") so the merge doesn't blur *which* source a given chip
+came from -- only where it's displayed. The panel's shared dedupe pass
+(a running `Set` of normalized items, applied in display-priority order)
+covers both tiers together, so a phrase appearing in both `directItems`
+and the PPT phrases only renders once.
 
 ## `suppressHydrationWarning` on both `<html>` and `<body>` (`layout.tsx`)
 
