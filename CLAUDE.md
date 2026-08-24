@@ -36,7 +36,7 @@ src/
       quick-duration.ts         -- Short Timing quick unit lookup (Prediction!B90:F91)
       predict.ts                -- Orchestrates the full pipeline + calculation trace
       judgement.ts              -- The 39-rule practical judgement library (PDF-sourced)
-      __tests__/                -- 80 Vitest tests: exhaustive combinations,
+      __tests__/                -- 91 Vitest tests: exhaustive combinations,
                                     a real cell-verified workbook benchmark, guards,
                                     the judgement rule registry
     data/
@@ -346,11 +346,42 @@ separately-badged, collapsed-by-default sub-section; per owner request
 ("What this house covers and PPT source are same, merge them") it's now
 merged into the "What this house covers" section alongside `directItems`,
 with both source tiers still individually badged (green "Direct", blue
-"PPT · slide N") so the merge doesn't blur *which* source a given chip
-came from -- only where it's displayed. The panel's shared dedupe pass
-(a running `Set` of normalized items, applied in display-priority order)
+"PPT · slide N") so the merge doesn't blur *which* source an item came
+from -- only where it's displayed. The panel's shared dedupe pass (a
+running `Set` of normalized items, applied in display-priority order)
 covers both tiers together, so a phrase appearing in both `directItems`
-and the PPT phrases only renders once.
+and the PPT phrases only renders once. See "House Detail panel layout"
+below for how items are currently rendered.
+
+## House Detail panel layout (`HouseDetailPanel.tsx`)
+
+Went through two rounds of readability feedback -- worth knowing the
+end state so a future "make it more readable" request doesn't re-litigate
+settled decisions:
+
+1. First pass split the dense source paragraphs into scannable pieces at
+   all (semicolon-joined sheet cells were rendered as one dense
+   paragraph originally).
+2. Second pass ("What this house covers and PPT source are same, merge
+   them") merged the Direct and PPT tiers into one section, and switched
+   "Used for questions about" from wrapped chips to a one-per-line list.
+3. Third pass ("format the show house detail... item below other or
+   something better") replaced the remaining wrapped-pill chip layout
+   (`TagList`) everywhere in the panel with a single `ItemList`
+   component: every field renders as a vertical list, one item per line,
+   each with a small tone-colored marker dot (green = Direct, blue =
+   PPT, amber = Interpretive) instead of a colored pill background --
+   chips read as a tag cloud, a vertical list reads top-to-bottom like
+   normal content. Sections are grouped into one bordered card with
+   dividers (`divide-y`) instead of separate floating blocks, and a
+   header (house number, figure name, `primaryTheme`) was added since
+   nothing inside the panel previously restated which house it was for.
+
+The now-dead "Expanded items" subsection (always empty since the house
+data migration, see below) was dropped rather than kept as a permanent
+"Nothing beyond what's already shown above." fixture -- Special/Derived
+and Secondary Supporting Houses remain under the same collapsible
+"Interpretive" toggle.
 
 ## `suppressHydrationWarning` on both `<html>` and `<body>` (`layout.tsx`)
 
@@ -406,7 +437,7 @@ the project's implementation-plan artifact for the full rationale.
 npm run dev      # Dev server at http://localhost:3001
 npm run build    # Production build
 npm run start    # Serve production build (also port 3001)
-npm test         # Run all 88 Vitest tests
+npm test         # Run all 91 Vitest tests
 npm run test:watch
 npm run validate:oracle  # Independent Excel-formula cross-check, all 1,572,864 cases (~15s)
 ```
