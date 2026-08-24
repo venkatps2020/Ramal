@@ -8,6 +8,7 @@ import { saveHistoryEntry } from "@/lib/history";
 import FigureGlyph from "@/components/FigureGlyph";
 import HouseCombobox from "@/components/HouseCombobox";
 import HouseDetailPanel from "@/components/HouseDetailPanel";
+import StihirKundaliTable from "@/components/StihirKundaliTable";
 import type { AgamNirgam, PredictionResult } from "@/lib/types";
 
 const STATUS_LABEL: Record<PredictionResult["status"], string> = {
@@ -306,6 +307,8 @@ export default function NewPredictionPage() {
           </div>
         </section>
       )}
+
+      <StihirKundaliTable chart={result?.chart ?? null} />
     </div>
   );
 }
