@@ -205,9 +205,11 @@ export default function NewPredictionPage() {
             </div>
           )}
 
-          {result.timing && (
+          {result.timing && !shortTiming && (
             <div>
-              <h3 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Timing</h3>
+              <h3 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
+                Timing (Short Timing: No)
+              </h3>
               {result.timing.unavailable ? (
                 <p className="mt-1 text-sm text-black/60 dark:text-white/60">Unavailable -- no Sthir Kundali match.</p>
               ) : (
@@ -225,10 +227,10 @@ export default function NewPredictionPage() {
             </div>
           )}
 
-          {result.quickDuration && (
+          {result.quickDuration && shortTiming && (
             <div>
               <h3 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
-                Quick duration ({result.quickDuration.mode.toLowerCase()} -- Short Timing: {shortTiming ? "Yes" : "No"})
+                Quick duration (Short Timing: Yes)
               </h3>
               {result.quickDuration.sthirHouseId === null ? (
                 <p className="mt-1 text-sm text-black/60 dark:text-white/60">Unavailable -- no Sthir Kundali match.</p>
