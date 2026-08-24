@@ -5,8 +5,8 @@ import type { PrashnaChart } from "@/lib/types";
 
 // Traditional Ramal Stihir Kundali layout (matches the PDF/PPT source
 // material's own presentation, e.g. "1 to 16 - updated 18.1.24.pptx" slide
-// 21): read right-to-left, tapering from 8 places wide down to a 4-place
-// row split 1-2-1 (14 | 16, 15 | 13). Places within each row/division are
+// 21): read right-to-left, tapering from 8 places wide down to a 2x2 block
+// (14, 13 on top; 16, 15 below). Places within each row/division are
 // grouped exactly as the source groups them:
 //   Places 1-4   -- Umhat division
 //   Places 5-8   -- Binhat division
@@ -14,7 +14,8 @@ import type { PrashnaChart } from "@/lib/types";
 //   Places 13-16 -- Jaydat/Jawaydat division
 const ROW1 = [8, 7, 6, 5, 4, 3, 2, 1];
 const ROW2 = [12, 11, 10, 9];
-const ROW3 = [14, 16, 15, 13];
+const ROW3_TOP = [14, 13];
+const ROW3_BOTTOM = [16, 15];
 
 function Cell({ place, chart }: { place: number; chart: PrashnaChart }) {
   const pattern = chart[place];
@@ -59,8 +60,13 @@ export default function PrashnaKundaliChart({ chart }: { chart: PrashnaChart }) 
           <DivisionLabel>Places 9-12 -- Mudbalidat division</DivisionLabel>
         </div>
 
-        <div className="grid grid-cols-4 divide-x divide-black/10 dark:divide-white/10">
-          {ROW3.map((p) => (
+        <div className="grid grid-cols-2 divide-x divide-black/10 border-b border-black/10 dark:divide-white/10 dark:border-white/10">
+          {ROW3_TOP.map((p) => (
+            <Cell key={p} place={p} chart={chart} />
+          ))}
+        </div>
+        <div className="grid grid-cols-2 divide-x divide-black/10 dark:divide-white/10">
+          {ROW3_BOTTOM.map((p) => (
             <Cell key={p} place={p} chart={chart} />
           ))}
         </div>

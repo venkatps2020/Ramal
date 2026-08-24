@@ -5,87 +5,157 @@ import { HOUSE_INTERPRETATIONS } from "@/lib/data/houses";
 import { HOUSE_PPT_NOTES } from "@/lib/data/house-ppt-notes";
 import type { HouseInterpretation } from "@/lib/types";
 
-const DIRECT_CATEGORIES: Array<[string, keyof HouseInterpretation]> = [
+const CATEGORIES: Array<[string, keyof HouseInterpretation]> = [
   ["Health / Body", "healthBody"],
-  ["Family / Relationships", "familyRelationships"],
-  ["Money / Material", "moneyMaterial"],
+  ["Family", "familyRelationships"],
+  ["Money", "moneyMaterial"],
   ["Work / Career", "workCareer"],
-  ["Travel / Movement", "travelMovement"],
-  ["Psychological / Spiritual", "psychologicalSpiritual"],
+  ["Travel", "travelMovement"],
+  ["Psychological", "psychologicalSpiritual"],
 ];
 
+/** These fields are semicolon-joined lists in the source sheet -- split into scannable items. */
+function splitItems(text: string): string[] {
+  return text
+    .split(";")
+    .map((s) => s.trim().replace(/\.$/, ""))
+    .filter(Boolean);
+}
+
+function normalize(item: string): string {
+  return item.toLowerCase().replace(/\s+/g, " ").trim().replace(/[.,]$/, "");
+}
+
+function Badge({ tone, children }: { tone: "direct" | "interpretive" | "ppt"; children: React.ReactNode }) {
+  const styles = {
+    direct: "border-emerald-600/40 text-emerald-700 dark:text-emerald-400",
+    interpretive: "border-[#8a6a3c]/40 text-[#8a6a3c]",
+    ppt: "border-[#3b4a6b]/40 text-[#3b4a6b] dark:border-[#93a6d8]/40 dark:text-[#93a6d8]",
+  }[tone];
+  return <span className={`rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${styles}`}>{children}</span>;
+}
+
+function TagList({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-1 flex flex-wrap gap-1.5">
+      {items.map((item, i) => (
+        <span
+          key={i}
+          className="rounded-full border border-black/10 bg-black/[0.03] px-2 py-0.5 text-xs text-black/75 dark:border-white/10 dark:bg-white/5 dark:text-white/75"
+        >
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function BulletList({ items }: { items: string[] }) {
+  if (items.length === 0) return <p className="mt-1 text-xs italic text-black/40 dark:text-white/40">Nothing beyond what&apos;s already shown above.</p>;
+  return (
+    <ul className="mt-1 list-disc space-y-0.5 pl-4 text-black/70 dark:text-white/70">
+      {items.map((item, i) => (
+        <li key={i}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
 export default function HouseDetailPanel({ houseId }: { houseId: number }) {
+  const [moreOpen, setMoreOpen] = useState(false);
   const [pptOpen, setPptOpen] = useState(false);
   const house = HOUSE_INTERPRETATIONS.find((h) => h.id === houseId);
   const pptNote = HOUSE_PPT_NOTES.find((n) => n.houseId === houseId);
   if (!house) return null;
 
+  // Dedupe exact (normalized) repeats across the whole panel, in display
+  // priority order -- expandedItems in particular tends to re-concatenate
+  // phrases that already appear verbatim in the category fields above it.
+  const seen = new Set<string>();
+  function dedupe(text: string): string[] {
+    const out: string[] = [];
+    for (const item of splitItems(text)) {
+      const key = normalize(item);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(item);
+    }
+    return out;
+  }
+
+  const directItems = dedupe(house.directItems);
+  const questionUseItems = dedupe(house.primaryQuestionUse);
+  const categoryItems = CATEGORIES.map(([label, field]) => [label, dedupe(house[field] as string)] as const).filter(
+    ([, items]) => items.length > 0
+  );
+  const expandedItems = dedupe(house.expandedItems);
+  const specialItems = dedupe(house.specialDerived);
+
   return (
     <div className="mt-3 space-y-4 rounded border border-black/10 p-4 text-sm dark:border-white/10">
       <div>
         <div className="flex items-center gap-2">
-          <span className="rounded border border-emerald-600/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-            Direct
-          </span>
-          <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Direct items</h4>
+          <Badge tone="direct">Direct</Badge>
+          <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">What this house covers</h4>
         </div>
-        <p className="mt-1 text-black/80 dark:text-white/80">{house.directItems}</p>
+        <TagList items={directItems} />
       </div>
 
       <div>
         <div className="flex items-center gap-2">
-          <span className="rounded border border-emerald-600/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-            Direct
-          </span>
-          <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Primary use in questions</h4>
+          <Badge tone="direct">Direct</Badge>
+          <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Used for questions about</h4>
         </div>
-        <p className="mt-1 text-black/80 dark:text-white/80">{house.primaryQuestionUse}</p>
+        <TagList items={questionUseItems} />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {DIRECT_CATEGORIES.map(([label, field]) => (
-          <div key={field}>
-            <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">{label}</h4>
-            <p className="mt-0.5 text-black/70 dark:text-white/70">{house[field] as string}</p>
+      {categoryItems.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {categoryItems.map(([label, items]) => (
+            <div key={label}>
+              <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">{label}</h4>
+              <TagList items={items} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="border-t border-black/10 pt-3 dark:border-white/10">
+        <button type="button" onClick={() => setMoreOpen((v) => !v)} className="flex items-center gap-2 text-left">
+          <Badge tone="interpretive">Interpretive</Badge>
+          <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
+            {moreOpen ? "Hide" : "Show"} expanded &amp; derived associations
+          </h4>
+        </button>
+        {moreOpen && (
+          <div className="mt-2 space-y-3">
+            <div>
+              <h5 className="text-[11px] uppercase tracking-wide text-black/40 dark:text-white/40">
+                Expanded items (new beyond what&apos;s shown above)
+              </h5>
+              <BulletList items={expandedItems} />
+            </div>
+            <div>
+              <h5 className="text-[11px] uppercase tracking-wide text-black/40 dark:text-white/40">
+                Special / derived associations
+              </h5>
+              <BulletList items={specialItems} />
+            </div>
+            <div>
+              <h5 className="text-[11px] uppercase tracking-wide text-black/40 dark:text-white/40">
+                Secondary supporting houses
+              </h5>
+              <p className="mt-0.5 text-black/70 dark:text-white/70">{house.secondarySupportingHouses}</p>
+            </div>
           </div>
-        ))}
-      </div>
-
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="rounded border border-[#8a6a3c]/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[#8a6a3c]">
-            Interpretive
-          </span>
-          <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Expanded items</h4>
-        </div>
-        <p className="mt-1 text-black/70 dark:text-white/70">{house.expandedItems}</p>
-      </div>
-
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="rounded border border-[#8a6a3c]/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[#8a6a3c]">
-            Interpretive
-          </span>
-          <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Special / derived associations</h4>
-        </div>
-        <p className="mt-1 text-black/70 dark:text-white/70">{house.specialDerived}</p>
-      </div>
-
-      <div>
-        <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Secondary supporting houses</h4>
-        <p className="mt-0.5 text-black/70 dark:text-white/70">{house.secondarySupportingHouses}</p>
+        )}
       </div>
 
       {pptNote && (
         <div className="border-t border-black/10 pt-3 dark:border-white/10">
-          <button
-            type="button"
-            onClick={() => setPptOpen((v) => !v)}
-            className="flex items-center gap-2 text-left"
-          >
-            <span className="rounded border border-[#3b4a6b]/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[#3b4a6b] dark:border-[#93a6d8]/40 dark:text-[#93a6d8]">
-              PPT source
-            </span>
+          <button type="button" onClick={() => setPptOpen((v) => !v)} className="flex items-center gap-2 text-left">
+            <Badge tone="ppt">PPT source</Badge>
             <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
               {pptOpen ? "Hide" : "Show"} PPT description (slide {pptNote.slideNumber})
             </h4>
