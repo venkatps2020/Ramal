@@ -135,6 +135,7 @@ export default function NewPredictionPage() {
             >
               {houseDetailOpen ? "Hide house detail" : "Show house detail"}
             </button>
+            {houseDetailOpen && <HouseDetailPanel houseId={questionHouse} />}
           </div>
           <div>
             <label className="block text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Type</label>
@@ -172,7 +173,6 @@ export default function NewPredictionPage() {
             </button>
           </div>
         </div>
-        {houseDetailOpen && <HouseDetailPanel houseId={questionHouse} />}
       </section>
 
       <button
@@ -185,16 +185,31 @@ export default function NewPredictionPage() {
 
       {result && (
         <section className="space-y-5 rounded border border-black/10 p-5 dark:border-white/10">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className={`rounded border px-3 py-1 font-mono text-sm uppercase ${STATUS_STYLE[result.status]}`}>
-              {STATUS_LABEL[result.status]}
-            </span>
-            {result.sthanBali && (
-              <span className="rounded border border-[#8a6a3c]/40 bg-[#8a6a3c]/10 px-3 py-1 text-xs uppercase tracking-wide text-[#8a6a3c]">
-                Sthan Bali
-              </span>
-            )}
-          </div>
+          {(!result.resultFigure || result.sthanBali) && (
+            <div className="flex flex-wrap items-center gap-3">
+              {!result.resultFigure && (
+                <span className={`rounded border px-3 py-1 font-mono text-sm uppercase ${STATUS_STYLE[result.status]}`}>
+                  {STATUS_LABEL[result.status]}
+                </span>
+              )}
+              {result.sthanBali && (
+                <span className="rounded border border-[#8a6a3c]/40 bg-[#8a6a3c]/10 px-3 py-1 text-xs uppercase tracking-wide text-[#8a6a3c]">
+                  Sthan Bali
+                </span>
+              )}
+            </div>
+          )}
+
+          {result.chart && (
+            <div>
+              <h3 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
+                16-place Prashna Kundali
+              </h3>
+              <div className="mt-2">
+                <PrashnaKundaliChart chart={result.chart} />
+              </div>
+            </div>
+          )}
 
           {result.resultFigure && (
             <div>
@@ -257,17 +272,6 @@ export default function NewPredictionPage() {
                   {result.quickDuration.count} {result.quickDuration.unitLabel}
                 </p>
               )}
-            </div>
-          )}
-
-          {result.chart && (
-            <div>
-              <h3 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
-                16-place Prashna Kundali
-              </h3>
-              <div className="mt-2">
-                <PrashnaKundaliChart chart={result.chart} />
-              </div>
             </div>
           )}
 
