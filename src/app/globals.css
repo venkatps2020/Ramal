@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-[#ece7da] text-[#2a241c] dark:bg-[#17150f] dark:text-[#ede6d8];
+}
+
+.font-display {
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+}
+
+/* A single figure symbol row: four tattva positions rendered as bindu (dot,
+   revealed/"0") or rekha (line, hidden/"-"), matching the source notation. */
+.figure-glyph {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+.figure-glyph .mark {
+  width: 16px;
+  height: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.figure-glyph .rekha {
+  border-top: 2px solid currentColor;
+  width: 14px;
+}
+.figure-glyph .bindu {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: currentColor;
+}
