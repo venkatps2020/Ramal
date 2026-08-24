@@ -21,7 +21,7 @@ export default function Navbar() {
     <header className="border-b border-black/10 dark:border-white/10">
       <nav className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
         <Link href="/" className="font-display text-lg font-semibold tracking-tight">
-          Ramal
+          Ramal Astrology
         </Link>
         <div className="flex items-center gap-4 text-sm">
           <Link href="/new-prediction" className="hover:text-[#3b4a6b] dark:hover:text-[#93a6d8]">
