@@ -65,10 +65,12 @@ export default function PrashnaKundaliChart({ chart }: { chart: PrashnaChart }) 
             <Cell key={p} place={p} chart={chart} />
           ))}
         </div>
-        <div className="grid grid-cols-2 divide-x divide-black/10 dark:divide-white/10">
-          {ROW3_BOTTOM.map((p) => (
-            <Cell key={p} place={p} chart={chart} />
-          ))}
+        <div className="flex justify-center">
+          <div className="grid w-1/2 grid-cols-2 divide-x divide-black/10 dark:divide-white/10">
+            {ROW3_BOTTOM.map((p) => (
+              <Cell key={p} place={p} chart={chart} />
+            ))}
+          </div>
         </div>
         <DivisionLabel>Places 13-16 -- Jaydat / Jawaydat division</DivisionLabel>
       </div>
