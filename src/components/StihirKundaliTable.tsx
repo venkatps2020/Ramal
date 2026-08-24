@@ -1,10 +1,15 @@
+"use client";
+
+import { useState } from "react";
 import { FIGURES } from "@/lib/data/figures";
 import { patternsEqual } from "@/lib/engines/figure";
 import FigureGlyph from "@/components/FigureGlyph";
 import type { PrashnaChart } from "@/lib/types";
 
-/** Full "Stihir Kundali" sheet reference table: the 16 fixed canonical figures. */
+/** Full "Stihir Kundali" sheet reference table: the 16 fixed canonical figures. Collapsed by default. */
 export default function StihirKundaliTable({ chart }: { chart?: PrashnaChart | null }) {
+  const [open, setOpen] = useState(false);
+
   function matchedPlaces(figureId: number): number[] {
     if (!chart) return [];
     const pattern = FIGURES.find((f) => f.id === figureId)!.pattern;
@@ -23,6 +28,14 @@ export default function StihirKundaliTable({ chart }: { chart?: PrashnaChart | n
         <code>Ramal Calculation.xlsx</code>.
         {chart && " Rows highlighted below appear somewhere in the current 16-place Prashna Kundali."}
       </p>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="mt-2 text-xs font-medium uppercase tracking-wide text-[#3b4a6b] dark:text-[#93a6d8]"
+      >
+        {open ? "Hide table" : "Show table"}
+      </button>
+      {open && (
       <div className="mt-3 overflow-x-auto rounded border border-black/10 dark:border-white/10">
         <table className="w-full min-w-[920px] text-sm">
           <thead>
@@ -80,6 +93,7 @@ export default function StihirKundaliTable({ chart }: { chart?: PrashnaChart | n
           </tbody>
         </table>
       </div>
+      )}
     </section>
   );
 }

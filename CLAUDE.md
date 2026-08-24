@@ -23,7 +23,9 @@ src/
     FigureGlyph.tsx           -- Renders a 4-symbol pattern as bindu/rekha marks
     RecentPredictions.tsx
     HouseCombobox.tsx          -- Searchable House picker (see "House search" below)
-    HouseDetailPanel.tsx       -- Direct vs. Interpretive breakdown for one house
+    HouseDetailPanel.tsx       -- Direct vs. Interpretive vs. PPT-source breakdown for one house
+    PrashnaKundaliChart.tsx    -- Traditional 8/4/4 Stihir Kundali layout (see below)
+    StihirKundaliTable.tsx     -- Full 16-figure reference table, collapsed by default
   lib/
     house-search.ts            -- Keyword ranking across all "12 Houses" sheet fields
     engines/
@@ -38,6 +40,7 @@ src/
                                     a real cell-verified workbook benchmark, guards,
                                     the judgement rule registry
     data/
+      house-ppt-notes.ts        -- PPT slides 24-35 (Houses 1-12), phrase-split verbatim
       figures.ts, houses.ts, timings.ts, questions.ts, glossary.ts
       -- all generated from Ramal Calculation.xlsx by scripts still in
          /private/tmp .../scratchpad/extract.py during this build; re-run
@@ -271,6 +274,45 @@ invented examples): searching "thief" surfaces House 12 (`Fear of thief`,
 a direct item) at score 10; searching "cautiously" surfaces House 8 at
 score 5, correctly tagged interpretive.
 
+## Prashna Kundali display (`PrashnaKundaliChart.tsx`)
+
+Replaced the original sequential 4x4 grid with the traditional layout the
+PDF and PPT both use consistently throughout the source material (e.g.
+`1 to 16 - updated 18.1.24.pptx` slide 21's "रमल स्थिर कुंडली" diagram):
+read right-to-left, tapering from an 8-place row down to a 4-place row
+split 1-2-1, with each block labeled by its named division:
+
+```
+Row 1 (8-wide):  8  7  6  5  |  4  3  2  1
+                 Places 5-8 -- Binhat  |  Places 1-4 -- Umhat
+Row 2 (4-wide):  12  11  |  10  9
+                 Places 9-12 -- Mudbalidat
+Row 3 (4-wide):  14  |  16  15  |  13
+                 Places 13-16 -- Jaydat / Jawaydat
+```
+
+Row 3 is rendered as a plain 4-column row rather than attempting the
+source's literal converging-triangle line art -- the source groups it
+1-2-1 (14 alone, 16+15 paired, 13 alone), which a flat left-to-right
+4-column row already preserves correctly; a center divider would have
+misrepresented it as a 2-2 split instead.
+
+## House PPT notes (`lib/data/house-ppt-notes.ts`)
+
+A second, separate house-description source: `1 to 16 - updated
+18.1.24.pptx` slides 24-35 (Houses 1-12), each slide's own narrative
+prose, phrase-split on its line breaks and preserved verbatim (including
+the source's own typos, e.g. House 2's "condition of the sick perso,n").
+Authority is the PPT (source/conceptual per master spec §2), distinct
+from both the Excel-sourced Direct and Expanded/Interpretive tiers already
+in `HouseDetailPanel` -- shown as a third, separately-badged ("PPT
+source"), collapsed-by-default sub-section rather than merged into either
+existing tier, since blurring three different-authority sources together
+would be exactly the kind of silent conflation the master spec warns
+against. Generated programmatically from the pptx (not hand-transcribed)
+via a one-off extraction script, the same discipline used for every other
+data file in this project.
+
 ## Deferred by owner decision
 
 **Dhruvank is out of scope.** `lib/data/questions.ts` imports the
@@ -297,7 +339,7 @@ the project's implementation-plan artifact for the full rationale.
 npm run dev      # Dev server at http://localhost:3001
 npm run build    # Production build
 npm run start    # Serve production build (also port 3001)
-npm test         # Run all 87 Vitest tests
+npm test         # Run all 88 Vitest tests
 npm run test:watch
 npm run validate:oracle  # Independent Excel-formula cross-check, all 1,572,864 cases (~15s)
 ```

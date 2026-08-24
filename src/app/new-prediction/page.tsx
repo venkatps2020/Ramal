@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { runPrediction } from "@/lib/engines/predict";
-import { patternsEqual } from "@/lib/engines/figure";
 import { FIGURES } from "@/lib/data/figures";
 import { saveHistoryEntry } from "@/lib/history";
 import FigureGlyph from "@/components/FigureGlyph";
 import HouseCombobox from "@/components/HouseCombobox";
 import HouseDetailPanel from "@/components/HouseDetailPanel";
 import StihirKundaliTable from "@/components/StihirKundaliTable";
+import PrashnaKundaliChart from "@/components/PrashnaKundaliChart";
 import type { AgamNirgam, PredictionResult } from "@/lib/types";
 
 const STATUS_LABEL: Record<PredictionResult["status"], string> = {
@@ -265,23 +265,8 @@ export default function NewPredictionPage() {
               <h3 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
                 16-place Prashna Kundali
               </h3>
-              <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-8">
-                {Array.from({ length: 16 }, (_, i) => i + 1).map((place) => {
-                  const pattern = result.chart![place];
-                  const match = FIGURES.find((f) => patternsEqual(f.pattern, pattern));
-                  return (
-                    <div
-                      key={place}
-                      className="rounded border border-black/10 p-2 text-center dark:border-white/10"
-                      title={match?.sourceName}
-                    >
-                      <div className="text-[10px] text-black/40 dark:text-white/40">#{place}</div>
-                      <div className="mt-1 flex justify-center text-[#3b4a6b] dark:text-[#93a6d8]">
-                        <FigureGlyph pattern={pattern} />
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="mt-2">
+                <PrashnaKundaliChart chart={result.chart} />
               </div>
             </div>
           )}

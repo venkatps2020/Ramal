@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { FIGURES } from "@/lib/data/figures";
 import { TIMING_BLOCKS } from "@/lib/data/timings";
 import { HOUSE_INTERPRETATIONS } from "@/lib/data/houses";
+import { HOUSE_PPT_NOTES } from "@/lib/data/house-ppt-notes";
 import { QUESTION_MASTER } from "@/lib/data/questions";
 import { GLOSSARY } from "@/lib/data/glossary";
 
@@ -64,6 +65,22 @@ describe("HOUSE_INTERPRETATIONS", () => {
     expect(HOUSE_INTERPRETATIONS.map((h) => h.id).sort((a, b) => a - b)).toEqual(
       Array.from({ length: 12 }, (_, i) => i + 1)
     );
+  });
+});
+
+describe("HOUSE_PPT_NOTES (PPT slides 24-35, source/conceptual per master spec §2)", () => {
+  it("has exactly 12 entries, houseId 1-12 each once, slideNumber 24-35 matching houseId+23", () => {
+    expect(HOUSE_PPT_NOTES).toHaveLength(12);
+    const ids = HOUSE_PPT_NOTES.map((n) => n.houseId).sort((a, b) => a - b);
+    expect(ids).toEqual(Array.from({ length: 12 }, (_, i) => i + 1));
+    for (const n of HOUSE_PPT_NOTES) {
+      expect(n.slideNumber).toBe(n.houseId + 23);
+      expect(n.title.length).toBeGreaterThan(0);
+      expect(n.phrases.length).toBeGreaterThan(0);
+      for (const phrase of n.phrases) {
+        expect(phrase.trim().length).toBeGreaterThan(0);
+      }
+    }
   });
 });
 
