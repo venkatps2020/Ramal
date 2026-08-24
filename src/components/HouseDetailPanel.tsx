@@ -35,19 +35,36 @@ function Badge({ tone, children }: { tone: "direct" | "interpretive" | "ppt"; ch
   return <span className={`rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${styles}`}>{children}</span>;
 }
 
-function TagList({ items }: { items: string[] }) {
+function TagList({ items, tone = "neutral" }: { items: string[]; tone?: "neutral" | "ppt" }) {
   if (items.length === 0) return null;
+  const styles =
+    tone === "ppt"
+      ? "border-[#3b4a6b]/30 bg-[#3b4a6b]/[0.04] text-[#3b4a6b] dark:border-[#93a6d8]/30 dark:bg-[#93a6d8]/[0.06] dark:text-[#93a6d8]"
+      : "border-black/10 bg-black/[0.03] text-black/75 dark:border-white/10 dark:bg-white/5 dark:text-white/75";
   return (
     <div className="mt-1 flex flex-wrap gap-1.5">
       {items.map((item, i) => (
-        <span
-          key={i}
-          className="rounded-full border border-black/10 bg-black/[0.03] px-2 py-0.5 text-xs text-black/75 dark:border-white/10 dark:bg-white/5 dark:text-white/75"
-        >
+        <span key={i} className={`rounded-full border px-2 py-0.5 text-xs ${styles}`}>
           {item}
         </span>
       ))}
     </div>
+  );
+}
+
+function StackedList({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <ul className="mt-1 space-y-1">
+      {items.map((item, i) => (
+        <li
+          key={i}
+          className="rounded border border-black/10 bg-black/[0.02] px-2.5 py-1 text-black/75 dark:border-white/10 dark:bg-white/5 dark:text-white/75"
+        >
+          {item}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -64,18 +81,18 @@ function BulletList({ items }: { items: string[] }) {
 
 export default function HouseDetailPanel({ houseId }: { houseId: number }) {
   const [moreOpen, setMoreOpen] = useState(false);
-  const [pptOpen, setPptOpen] = useState(false);
   const house = HOUSE_INTERPRETATIONS.find((h) => h.id === houseId);
   const pptNote = HOUSE_PPT_NOTES.find((n) => n.houseId === houseId);
   if (!house) return null;
 
   // Dedupe exact (normalized) repeats across the whole panel, in display
   // priority order -- expandedItems in particular tends to re-concatenate
-  // phrases that already appear verbatim in the category fields above it.
+  // phrases that already appear verbatim in the category fields above it,
+  // and the PPT phrases often restate the same coverage as directItems.
   const seen = new Set<string>();
-  function dedupe(text: string): string[] {
+  function dedupe(items: string[]): string[] {
     const out: string[] = [];
-    for (const item of splitItems(text)) {
+    for (const item of items) {
       const key = normalize(item);
       if (!key || seen.has(key)) continue;
       seen.add(key);
@@ -83,23 +100,29 @@ export default function HouseDetailPanel({ houseId }: { houseId: number }) {
     }
     return out;
   }
+  function dedupeText(text: string): string[] {
+    return dedupe(splitItems(text));
+  }
 
-  const directItems = dedupe(house.directItems);
-  const questionUseItems = dedupe(house.primaryQuestionUse);
-  const categoryItems = CATEGORIES.map(([label, field]) => [label, dedupe(house[field] as string)] as const).filter(
+  const directItems = dedupeText(house.directItems);
+  const pptItems = pptNote ? dedupe(pptNote.phrases) : [];
+  const questionUseItems = dedupeText(house.primaryQuestionUse);
+  const categoryItems = CATEGORIES.map(([label, field]) => [label, dedupeText(house[field] as string)] as const).filter(
     ([, items]) => items.length > 0
   );
-  const expandedItems = dedupe(house.expandedItems);
-  const specialItems = dedupe(house.specialDerived);
+  const expandedItems = dedupeText(house.expandedItems);
+  const specialItems = dedupeText(house.specialDerived);
 
   return (
     <div className="mt-3 space-y-4 rounded border border-black/10 p-4 text-sm dark:border-white/10">
       <div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge tone="direct">Direct</Badge>
+          {pptNote && <Badge tone="ppt">PPT &middot; slide {pptNote.slideNumber}</Badge>}
           <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">What this house covers</h4>
         </div>
         <TagList items={directItems} />
+        <TagList items={pptItems} tone="ppt" />
       </div>
 
       <div>
@@ -107,7 +130,7 @@ export default function HouseDetailPanel({ houseId }: { houseId: number }) {
           <Badge tone="direct">Direct</Badge>
           <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Used for questions about</h4>
         </div>
-        <TagList items={questionUseItems} />
+        <StackedList items={questionUseItems} />
       </div>
 
       {categoryItems.length > 0 && (
@@ -151,27 +174,6 @@ export default function HouseDetailPanel({ houseId }: { houseId: number }) {
           </div>
         )}
       </div>
-
-      {pptNote && (
-        <div className="border-t border-black/10 pt-3 dark:border-white/10">
-          <button type="button" onClick={() => setPptOpen((v) => !v)} className="flex items-center gap-2 text-left">
-            <Badge tone="ppt">PPT source</Badge>
-            <h4 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
-              {pptOpen ? "Hide" : "Show"} PPT description (slide {pptNote.slideNumber})
-            </h4>
-          </button>
-          {pptOpen && (
-            <div className="mt-2">
-              <p className="text-xs italic text-black/50 dark:text-white/50">{pptNote.title}</p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-black/70 dark:text-white/70">
-                {pptNote.phrases.map((phrase, i) => (
-                  <li key={i}>{phrase}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
