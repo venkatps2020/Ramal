@@ -202,10 +202,22 @@ export default function NewPredictionPage() {
                 <FigureGlyph pattern={result.resultFigure} className="text-[#3b4a6b] dark:text-[#93a6d8]" />
                 <span className="font-mono text-sm">{result.resultFigure.join(" ")}</span>
               </div>
+              <p
+                className={`mt-2 text-base font-bold ${
+                  result.status === "YES" ? "text-emerald-700 dark:text-emerald-400" : "text-black/80 dark:text-white/80"
+                }`}
+              >
+                Final Outcome: {STATUS_LABEL[result.status]}
+              </p>
+              {result.status === "NO" && (
+                <p className="mt-1 text-xs italic text-black/45 dark:text-white/45">
+                  Timing is not shown when the answer is No.
+                </p>
+              )}
             </div>
           )}
 
-          {result.timing && !shortTiming && (
+          {result.timing && !shortTiming && result.status === "YES" && (
             <div>
               <h3 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
                 Timing (Short Timing: No)
@@ -227,7 +239,7 @@ export default function NewPredictionPage() {
             </div>
           )}
 
-          {result.quickDuration && shortTiming && (
+          {result.quickDuration && shortTiming && result.status === "YES" && (
             <div>
               <h3 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
                 Quick duration (Short Timing: Yes)
