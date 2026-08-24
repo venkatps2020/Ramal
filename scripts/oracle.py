@@ -155,11 +155,42 @@ def compute_timing(result_pattern, chart):
     return {"timingNumber": timing_number, "matches": matches, "totalDays": total_days, "totalMonths": total_months, "totalYears": total_years, "unavailable": False}
 
 
+ABJAD_VALUE = [1, 2, 3, 4]  # tez, vayu, jal, prithvi
+
+
+def compute_quick_duration(result_pattern, short_timing):
+    """Prediction!B90:F91 -- re-derived independently from the raw formulas
+    (D90/E90/F90 for Normal, D91/E91/F91 for Short Duration), reproducing
+    the two confirmed source bugs faithfully: F90 only ever resolves
+    Day(s)/Week(s) (houses 9-16 fall through to ""), and E91 excludes the
+    tez/first-symbol contribution entirely."""
+    fig_id = PATTERN_TO_ID.get(result_pattern)
+    if fig_id is None:
+        return {"mode": "SHORT" if short_timing else "NORMAL", "sthirHouseId": None, "count": None, "unitLabel": ""}
+
+    if not short_timing:
+        count = sum(w for w, s in zip(ABJAD_VALUE, result_pattern) if s == "0")
+        if 1 <= fig_id <= 4:
+            unit = "Day(s)"
+        elif 5 <= fig_id <= 8:
+            unit = "Week(s)"
+        else:
+            unit = ""  # Bug 1: houses 9-16 unreachable, matches Prediction!F90 exactly
+        return {"mode": "NORMAL", "sthirHouseId": fig_id, "count": count, "unitLabel": unit}
+
+    # Bug 2: SUMIF(D86:D89,...) skips tez (D85) entirely.
+    count = sum(w for w, s in zip([2, 3, 4], result_pattern[1:]) if s == "0")
+    unit = "Minutes" if 1 <= fig_id <= 7 else "Hours"
+    return {"mode": "SHORT", "sthirHouseId": fig_id, "count": count, "unitLabel": unit}
+
+
 def full_case(mother_ids, house, qtype):
     chart = build_chart(mother_ids)
     status = guard_status(chart)
     judgement = calculate_question(house, qtype, chart)
     timing = compute_timing(judgement["resultFigure"], chart)
+    qd_normal = compute_quick_duration(judgement["resultFigure"], False)
+    qd_short = compute_quick_duration(judgement["resultFigure"], True)
     return {
         "draw": list(mother_ids),
         "house": house,
@@ -174,6 +205,8 @@ def full_case(mother_ids, house, qtype):
         "totalDays": timing["totalDays"],
         "totalMonths": timing["totalMonths"],
         "totalYears": timing["totalYears"],
+        "quickDurationNormal": qd_normal,
+        "quickDurationShort": qd_short,
     }
 
 
@@ -192,6 +225,8 @@ if __name__ == "__main__":
                             for qtype in ("AGAM", "NIRGAM"):
                                 judgement = calculate_question(house, qtype, chart)
                                 timing = compute_timing(judgement["resultFigure"], chart)
+                                qd_normal = compute_quick_duration(judgement["resultFigure"], False)
+                                qd_short = compute_quick_duration(judgement["resultFigure"], True)
                                 rec = {
                                     "draw": [a, b, c, d],
                                     "house": house,
@@ -205,6 +240,8 @@ if __name__ == "__main__":
                                     "totalDays": timing["totalDays"],
                                     "totalMonths": timing["totalMonths"],
                                     "totalYears": timing["totalYears"],
+                                    "quickDurationNormal": qd_normal,
+                                    "quickDurationShort": qd_short,
                                 }
                                 out.write(json.dumps(rec, sort_keys=True) + "\n")
     elif mode == "benchmark":

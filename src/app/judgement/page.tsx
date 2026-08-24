@@ -103,7 +103,7 @@ export default function JudgementLibraryPage() {
               >
                 {FIGURES.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.sourceName}
+                    {f.id} -- {f.sourceName}
                   </option>
                 ))}
               </select>

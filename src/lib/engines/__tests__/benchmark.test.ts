@@ -42,6 +42,26 @@ describe("runPrediction -- workbook benchmark (cards 2,8,4,9; house 7; Nirgam)",
     expect(result.trace.length).toBeGreaterThanOrEqual(8);
     expect(result.trace[0].label).toBe("Four Mother Figures drawn");
   });
+
+  it("computes the exact NORMAL quick duration the workbook computed (Prediction!D90:F90)", () => {
+    const normal = runPrediction({
+      draw: { figureIds: [2, 8, 4, 9] },
+      questionHouse: 7,
+      questionType: "NIRGAM",
+      shortTiming: false,
+    });
+    expect(normal.quickDuration).toEqual({ mode: "NORMAL", sthirHouseId: 8, count: 2, unitLabel: "Week(s)" });
+  });
+
+  it("computes the exact SHORT quick duration for the same result figure (Prediction!D91:F91)", () => {
+    const short = runPrediction({
+      draw: { figureIds: [2, 8, 4, 9] },
+      questionHouse: 7,
+      questionType: "NIRGAM",
+      shortTiming: true,
+    });
+    expect(short.quickDuration).toEqual({ mode: "SHORT", sthirHouseId: 8, count: 2, unitLabel: "Hours" });
+  });
 });
 
 describe("runPrediction -- guard short-circuits", () => {
@@ -54,6 +74,7 @@ describe("runPrediction -- guard short-circuits", () => {
     expect(result.status).toBe("CANT_PREDICT_TODAY");
     expect(result.resultFigure).toBeNull();
     expect(result.timing).toBeNull();
+    expect(result.quickDuration).toBeNull();
   });
 
   it("returns CALCULATION_ERROR for a question house outside 1-12", () => {

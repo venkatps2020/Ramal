@@ -92,6 +92,14 @@ export interface PredictionInput {
   draw: FourFigureDraw;
   questionHouse: number;
   questionType: AgamNirgam;
+  /**
+   * Prediction!B8 equivalent. Note: this input has NO formula wiring
+   * anywhere in the workbook (verified exhaustively -- zero cell references
+   * it). When true, timing uses the PDF-sourced short-scale calculation
+   * (see engines/short-timing.ts) instead of the Excel-verified long-scale
+   * one. Defaults to false (the normal long-scale path).
+   */
+  shortTiming?: boolean;
 }
 
 export interface TraceStep {
@@ -111,6 +119,24 @@ export interface TimingResult {
   unavailable: boolean;
 }
 
+export type QuickDurationUnit = "Day(s)" | "Week(s)" | "Month(s)" | "Year(s)" | "Minutes" | "Hours" | "";
+
+/**
+ * Prediction!B90:F91 -- a separate, simpler "quick unit + count" lookup,
+ * gated by the Short Timing (Prediction!B8) flag, distinct from the
+ * detailed Days/Months/Years engine in TimingResult above (which runs
+ * unconditionally regardless of B8). See engines/quick-duration.ts for the
+ * two confirmed source-workbook formula bugs this faithfully reproduces.
+ */
+export interface QuickDurationResult {
+  mode: "NORMAL" | "SHORT";
+  /** The matched Sthir house (1-16), or null if the result pattern matched nothing. */
+  sthirHouseId: number | null;
+  count: number | null;
+  /** "" reproduces a real source bug: NORMAL mode can never resolve Month(s)/Year(s) (houses 9-16). */
+  unitLabel: QuickDurationUnit;
+}
+
 export interface PredictionResult {
   status: AnswerStatus;
   sthanBali: boolean;
@@ -118,6 +144,7 @@ export interface PredictionResult {
   house1Figure: FigurePattern | null;
   resultFigure: FigurePattern | null;
   timing: TimingResult | null;
+  quickDuration: QuickDurationResult | null;
   chart: PrashnaChart | null;
   trace: TraceStep[];
 }

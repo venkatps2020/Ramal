@@ -35,6 +35,7 @@ export default function NewPredictionPage() {
   const [figureIds, setFigureIds] = useState<[number, number, number, number]>([1, 2, 3, 4]);
   const [questionHouse, setQuestionHouse] = useState(7);
   const [questionType, setQuestionType] = useState<AgamNirgam>("AGAM");
+  const [shortTiming, setShortTiming] = useState(false);
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [traceOpen, setTraceOpen] = useState(false);
 
@@ -51,7 +52,7 @@ export default function NewPredictionPage() {
   }
 
   function calculate() {
-    const r = runPrediction({ draw: { figureIds }, questionHouse, questionType });
+    const r = runPrediction({ draw: { figureIds }, questionHouse, questionType, shortTiming });
     setResult(r);
     setTraceOpen(false);
     saveHistoryEntry({
@@ -101,7 +102,7 @@ export default function NewPredictionPage() {
               >
                 {FIGURES.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.sourceName}
+                    {f.id} -- {f.sourceName}
                   </option>
                 ))}
               </select>
@@ -151,6 +152,22 @@ export default function NewPredictionPage() {
                 </button>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="block text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
+              Short Timing (within one day)
+            </label>
+            <button
+              type="button"
+              onClick={() => setShortTiming((v) => !v)}
+              className={`mt-1 rounded border px-3 py-1.5 text-sm ${
+                shortTiming
+                  ? "border-[#3b4a6b] bg-[#3b4a6b]/10 text-[#3b4a6b] dark:border-[#93a6d8] dark:text-[#93a6d8]"
+                  : "border-black/15 dark:border-white/15"
+              }`}
+            >
+              {shortTiming ? "Yes" : "No"}
+            </button>
           </div>
         </div>
       </section>
@@ -202,6 +219,26 @@ export default function NewPredictionPage() {
                     {result.timing.matches.map((m) => m.place).join(", ") || "none"}.
                   </p>
                 </>
+              )}
+            </div>
+          )}
+
+          {result.quickDuration && (
+            <div>
+              <h3 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
+                Quick duration ({result.quickDuration.mode.toLowerCase()} -- Short Timing: {shortTiming ? "Yes" : "No"})
+              </h3>
+              {result.quickDuration.sthirHouseId === null ? (
+                <p className="mt-1 text-sm text-black/60 dark:text-white/60">Unavailable -- no Sthir Kundali match.</p>
+              ) : result.quickDuration.unitLabel === "" ? (
+                <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+                  Not resolvable -- matched Sthir house {result.quickDuration.sthirHouseId} falls outside this
+                  workbook formula&apos;s reachable range (a known source gap, see calculation trace).
+                </p>
+              ) : (
+                <p className="mt-1 font-mono text-sm">
+                  {result.quickDuration.count} {result.quickDuration.unitLabel}
+                </p>
               )}
             </div>
           )}

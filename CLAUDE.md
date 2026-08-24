@@ -28,9 +28,10 @@ src/
       kundali.ts                -- 16-place construction + validation guards
       prediction.ts             -- House-5 exception, Sthan Bali, Agam/Nirgam judgement
       timing.ts                 -- Timing lookup + 30-day/12-month normalization
+      quick-duration.ts         -- Short Timing quick unit lookup (Prediction!B90:F91)
       predict.ts                -- Orchestrates the full pipeline + calculation trace
-      judgement.ts              -- The 42-rule practical judgement library (PDF-sourced)
-      __tests__/                -- 70 Vitest tests: exhaustive combinations,
+      judgement.ts              -- The 39-rule practical judgement library (PDF-sourced)
+      __tests__/                -- 80 Vitest tests: exhaustive combinations,
                                     a real cell-verified workbook benchmark, guards,
                                     the judgement rule registry
     data/
@@ -114,13 +115,64 @@ npm run validate:oracle
 
 **Last run (2026-08-24): all 1,572,864 possible (draw, house, type)
 combinations -- the full 16^4 x 12 x 2 space, not a sample -- agree
-exactly between the two independent implementations. Zero mismatches.**
+exactly between the two independent implementations, including both
+Normal- and Short-mode Quick Duration. Zero mismatches.**
 `figures.ts` and `timings.ts` were separately cross-checked against a
 fresh independent read of the workbook too (both PASS, all 16
 figures/blocks match byte-for-byte). Re-run this after any change to
-`kundali.ts`, `prediction.ts`, or `timing.ts` -- it takes about 15 seconds
-and it's the strongest correctness signal in the repo, stronger than the
-hand-picked benchmark test alone.
+`kundali.ts`, `prediction.ts`, `timing.ts`, or `quick-duration.ts` -- it
+takes about 15-20 seconds and it's the strongest correctness signal in the
+repo, stronger than the hand-picked benchmark test alone.
+
+**Gotcha hit and fixed while building this**: the diff script originally
+compared object-valued fields with raw `JSON.stringify`, which is
+key-order sensitive -- Python's `sort_keys=True` output and JS object
+literal insertion order don't match, so every `quickDuration*` case
+false-positived as a mismatch even though the values were identical.
+Fixed with an order-independent `stableStringify` helper in
+`oracle-diff.mts`. Worth remembering if a future field addition here
+starts throwing suspicious 100%-mismatch runs -- check the comparison
+method before assuming the engine is wrong.
+
+## Quick Duration / Short Timing (`Prediction!B90:F91`)
+
+A **separate, simpler** calculation from the main Timing engine above
+(`Prediction!C59:G76`) -- this one just answers "which unit (Day(s) /
+Week(s) / Month(s) / Year(s), or Minutes / Hours) and how many", gated by
+the Short Timing flag (`Prediction!B8`). It runs *alongside* the detailed
+engine, not instead of it -- both are always computed and shown.
+
+This one was missed on the first pass: an initial exhaustive search for
+any formula referencing `B8` came back with zero hits and was reported as
+such, which was wrong -- the search's own filters were too narrow (it
+required a `$B$8`/`!B8`/leading-`B8` pattern that a plain `B8="No"`
+comparison inside a larger formula doesn't match). The owner pointed
+directly at `B90:F91` and a broader raw-text search confirmed the real
+formulas immediately. Worth remembering: a "zero hits" search result is
+only as good as the search terms, especially across a 140-row, 25-column
+sheet with mixed input/formula/label rows.
+
+Implemented in `engines/quick-duration.ts`, reproducing **two confirmed
+real bugs in the shipped workbook** faithfully (not silently corrected --
+Excel is this project's primary executable reference):
+
+- **`F90` (Normal mode unit label) is off by two rows.** It searches the
+  matched Sthir house number against `D93`, `D94`, `D95`, `D96` in
+  sequence -- but `D93` is blank and `D94` is a text label, not table
+  data. The real Day/Week/Month/Year table lives at `D95:D98`. Houses 1-4
+  and 5-8 happen to still resolve correctly (`D95`/`D96` are, respectively,
+  the 3rd and 4th checks in the broken cascade and coincide with the real
+  Day(s)/Week(s) rows), but houses 9-16 (Month(s)/Year(s)) are
+  unreachable -- every branch fails and `F90` falls through to `""`.
+- **`E91` (Short mode count) is off by one row.** It sums `D86:D89`
+  against `E86:E89` instead of mirroring `E90`'s correct `D85:D88`/
+  `E85:E88`, so it excludes the tez/first-symbol contribution (abjad
+  weight 1) entirely and pairs in a blank phantom row instead.
+
+Both were verified against the workbook's own cached values before being
+implemented (house 8, cards 2/8/4/9: `E90` cached `2`, `F90` cached
+`"Week(s)"` -- matches exactly) and are covered by the exhaustive oracle
+above, not just the unit tests.
 
 ## Judgement Library (39 rules, `Ramal-jyotish.pdf` "फलादेश"/"प्रगत रमल")
 
@@ -214,7 +266,7 @@ the project's implementation-plan artifact for the full rationale.
 npm run dev      # Dev server at http://localhost:3000
 npm run build    # Production build
 npm run start    # Serve production build
-npm test         # Run all 70 Vitest tests
+npm test         # Run all 80 Vitest tests
 npm run test:watch
 npm run validate:oracle  # Independent Excel-formula cross-check, all 1,572,864 cases (~15s)
 ```

@@ -4,6 +4,7 @@
 import { buildPrashnaKundali } from "@/lib/engines/kundali";
 import { calculateQuestion } from "@/lib/engines/prediction";
 import { computeTiming } from "@/lib/engines/timing";
+import { computeQuickDuration } from "@/lib/engines/quick-duration";
 import { FIGURES } from "@/lib/data/figures";
 import type { AgamNirgam, PredictionInput, PredictionResult, TraceStep } from "@/lib/types";
 
@@ -50,6 +51,7 @@ export function runPrediction(input: PredictionInput): PredictionResult {
       house1Figure: null,
       resultFigure: null,
       timing: null,
+      quickDuration: null,
       chart,
       trace,
     };
@@ -67,6 +69,7 @@ export function runPrediction(input: PredictionInput): PredictionResult {
       house1Figure: null,
       resultFigure: null,
       timing: null,
+      quickDuration: null,
       chart,
       trace,
     };
@@ -120,6 +123,19 @@ export function runPrediction(input: PredictionInput): PredictionResult {
     output: { years: timing.totalYears, months: timing.totalMonths, days: timing.totalDays },
   });
 
+  const quickDuration = computeQuickDuration(judgement.resultFigure, input.shortTiming ?? false);
+
+  trace.push({
+    label: "Quick duration (Short Timing)",
+    detail:
+      quickDuration.sthirHouseId === null
+        ? "Result figure did not match any Sthir Kundali figure -- quick duration unavailable."
+        : quickDuration.unitLabel === ""
+          ? `Short Timing = ${(input.shortTiming ?? false) ? "Yes" : "No"}; matched Sthir house ${quickDuration.sthirHouseId} falls outside the workbook's reachable Day(s)/Week(s) range for Normal mode -- Prediction!F90 leaves this blank (a source formula gap, reproduced faithfully; see quick-duration.ts).`
+          : `Short Timing = ${(input.shortTiming ?? false) ? "Yes" : "No"} (${quickDuration.mode.toLowerCase()} mode); matched Sthir house ${quickDuration.sthirHouseId} -> ${quickDuration.count} ${quickDuration.unitLabel}.`,
+    output: quickDuration,
+  });
+
   return {
     status: judgement.status,
     sthanBali: judgement.sthanBali,
@@ -127,6 +143,7 @@ export function runPrediction(input: PredictionInput): PredictionResult {
     house1Figure: judgement.house1Figure,
     resultFigure: judgement.resultFigure,
     timing,
+    quickDuration,
     chart,
     trace,
   };

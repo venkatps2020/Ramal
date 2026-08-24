@@ -7,7 +7,15 @@ import readline from "node:readline";
 import { buildPrashnaKundali } from "../src/lib/engines/kundali";
 import { calculateQuestion } from "../src/lib/engines/prediction";
 import { computeTiming } from "../src/lib/engines/timing";
+import { computeQuickDuration } from "../src/lib/engines/quick-duration";
 import type { AgamNirgam, FigurePattern } from "../src/lib/types";
+
+interface OracleQuickDuration {
+  mode: "NORMAL" | "SHORT";
+  sthirHouseId: number | null;
+  count: number | null;
+  unitLabel: string;
+}
 
 interface OracleCase {
   draw: [number, number, number, number];
@@ -22,10 +30,22 @@ interface OracleCase {
   totalDays: number;
   totalMonths: number;
   totalYears: number;
+  quickDurationNormal: OracleQuickDuration;
+  quickDurationShort: OracleQuickDuration;
 }
 
 function patternToString(p: FigurePattern): string {
   return p.join("");
+}
+
+// Order-independent structural equality -- JSON.stringify is key-order
+// sensitive, which produced false-positive mismatches for object-valued
+// fields (Python's sort_keys=True vs JS object literal insertion order).
+function stableStringify(v: unknown): string {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return `[${v.map(stableStringify).join(",")}]`;
+  const keys = Object.keys(v as Record<string, unknown>).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify((v as Record<string, unknown>)[k])}`).join(",")}}`;
 }
 
 let total = 0;
@@ -43,6 +63,8 @@ rl.on("line", (line) => {
   const { chart, status: guardStatus } = buildPrashnaKundali(oracle.draw);
   const judgement = calculateQuestion(oracle.house, oracle.type, chart);
   const timing = computeTiming(judgement.resultFigure, chart);
+  const qdNormal = computeQuickDuration(judgement.resultFigure, false);
+  const qdShort = computeQuickDuration(judgement.resultFigure, true);
 
   const actual = {
     guardStatus,
@@ -54,6 +76,8 @@ rl.on("line", (line) => {
     totalDays: timing.totalDays,
     totalMonths: timing.totalMonths,
     totalYears: timing.totalYears,
+    quickDurationNormal: qdNormal,
+    quickDurationShort: qdShort,
   };
 
   const oracleTimingMatches = oracle.timingMatches === false ? [] : oracle.timingMatches;
@@ -69,6 +93,10 @@ rl.on("line", (line) => {
   if (actual.totalDays !== oracle.totalDays) diffs.push(`totalDays: ${actual.totalDays} != ${oracle.totalDays}`);
   if (actual.totalMonths !== oracle.totalMonths) diffs.push(`totalMonths: ${actual.totalMonths} != ${oracle.totalMonths}`);
   if (actual.totalYears !== oracle.totalYears) diffs.push(`totalYears: ${actual.totalYears} != ${oracle.totalYears}`);
+  if (stableStringify(actual.quickDurationNormal) !== stableStringify(oracle.quickDurationNormal))
+    diffs.push(`quickDurationNormal: ${JSON.stringify(actual.quickDurationNormal)} != ${JSON.stringify(oracle.quickDurationNormal)}`);
+  if (stableStringify(actual.quickDurationShort) !== stableStringify(oracle.quickDurationShort))
+    diffs.push(`quickDurationShort: ${JSON.stringify(actual.quickDurationShort)} != ${JSON.stringify(oracle.quickDurationShort)}`);
 
   if (diffs.length > 0) {
     mismatches++;
