@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { runPrediction } from "@/lib/engines/predict";
+import { sthirFigureFor } from "@/lib/engines/judgement";
 import { FIGURES } from "@/lib/data/figures";
 import { loadHistory, saveHistoryEntry, type HistoryEntry } from "@/lib/history";
 import FigureGlyph from "@/components/FigureGlyph";
@@ -11,7 +12,7 @@ import PrashnaKundaliChart from "@/components/PrashnaKundaliChart";
 import JudgementResults from "@/components/JudgementResults";
 import QuestionSearch from "@/components/QuestionSearch";
 import HistorySummary from "@/components/HistorySummary";
-import type { AgamNirgam, PredictionResult } from "@/lib/types";
+import type { AgamNirgam, FigurePattern, PredictionResult } from "@/lib/types";
 
 const STATUS_LABEL: Record<PredictionResult["status"], string> = {
   YES: "Yes",
@@ -29,6 +30,11 @@ const STATUS_STYLE: Record<PredictionResult["status"], string> = {
 
 function figureById(id: number) {
   return FIGURES.find((f) => f.id === id)!;
+}
+
+function shakalName(pattern: FigurePattern | null): string {
+  if (!pattern) return "?";
+  return sthirFigureFor(pattern)?.sourceName ?? "?";
 }
 
 function randomFigureId(): number {
@@ -247,8 +253,32 @@ export default function NewPredictionPage() {
           {result.resultFigure && (
             <div>
               <h3 className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">Result figure</h3>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                <span className="flex items-center gap-1.5 rounded border border-black/10 px-2 py-1 dark:border-white/10">
+                  <FigureGlyph pattern={result.questionHouseFigure!} className="text-[#3b4a6b] dark:text-[#93a6d8]" />
+                  House {questionHouse}: {shakalName(result.questionHouseFigure)}
+                </span>
+                {questionHouse !== 5 && (
+                  <>
+                    <span className="text-black/40 dark:text-white/40">+</span>
+                    <span className="flex items-center gap-1.5 rounded border border-black/10 px-2 py-1 dark:border-white/10">
+                      <FigureGlyph pattern={result.house1Figure!} className="text-[#3b4a6b] dark:text-[#93a6d8]" />
+                      House 1: {shakalName(result.house1Figure)}
+                    </span>
+                  </>
+                )}
+                <span className="text-black/40 dark:text-white/40">=</span>
+                <span className="flex items-center gap-1.5 rounded border border-[#3b4a6b]/30 bg-[#3b4a6b]/5 px-2 py-1 dark:border-[#93a6d8]/30 dark:bg-[#93a6d8]/10">
+                  <FigureGlyph pattern={result.resultFigure} className="text-[#3b4a6b] dark:text-[#93a6d8]" />
+                  Result: {shakalName(result.resultFigure)}
+                </span>
+              </div>
+              {questionHouse === 5 && (
+                <p className="mt-1 text-xs italic text-black/45 dark:text-white/45">
+                  House 5 is exempt from adding House 1 -- the house&apos;s own figure is the result.
+                </p>
+              )}
               <div className="mt-1 flex items-center gap-3">
-                <FigureGlyph pattern={result.resultFigure} className="text-[#3b4a6b] dark:text-[#93a6d8]" />
                 <span className="font-mono text-sm">{result.resultFigure.join(" ")}</span>
               </div>
               <p

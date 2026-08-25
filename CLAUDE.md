@@ -446,6 +446,23 @@ at score 10 (both genuinely mention a job in their own
 snippets to click, rather than silently auto-picking one and hiding the
 ambiguity.
 
+**Result figure "working" display (`new-prediction/page.tsx`)** -- per
+owner request (2026-08-26), the Result figure block now shows the actual
+component figures, not just the final answer: `House {N}:
+{questionHouseFigure's shakal name}` + `House 1: {house1Figure's shakal
+name}` = `Result: {resultFigure's shakal name}`, each with its own
+glyph, using `sthirFigureFor()` (already exported from `judgement.ts`)
+to name each pattern -- no engine changes, `questionHouseFigure` and
+`house1Figure` were already on `PredictionResult`, just not surfaced in
+the UI before. **House 5 shows only `House 5: ... = Result: ...`, no "+
+House 1"** -- per the house-5 exception (`prediction.ts`:
+`questionHouse === 5 ? questionHouseFigure : addFigure(...)`), House 1
+is never added for House 5, so `questionHouseFigure` and `resultFigure`
+are *always* identical there; showing the addition anyway would
+misrepresent the rule. Sanity-checked directly (not just by reading the
+code): for draw `2,8,4,9`, House 5's `questionHouseFigure` and
+`resultFigure` both resolve to Jamaat, byte-identical.
+
 **Recent-predictions summary (`HistorySummary.tsx`)** -- a collapsed
 "Show recent predictions (N)" toggle at the very bottom of
 `new-prediction/page.tsx`, listing the last 10 saved entries (figures
