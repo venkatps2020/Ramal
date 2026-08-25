@@ -108,9 +108,13 @@ export function runPrediction(input: PredictionInput): PredictionResult {
   });
 
   const timing = computeTiming(judgement.resultFigure, chart);
-  const timingPerPlace = timing.matches
+  const timingPerPlaceInline = timing.matches
     .map((m) => `place ${m.place}: ${m.years}y ${m.months}m ${m.days}d`)
     .join("; ");
+  const timingPerPlaceLines = timing.matches
+    .map((m) => `  place ${m.place}: ${m.years}y ${m.months}m ${m.days}d`)
+    .join("\n");
+  const timingTotalLine = `  Total: ${timing.totalYears}y ${timing.totalMonths}m ${timing.totalDays}d`;
 
   trace.push({
     label: "Timing lookup",
@@ -120,7 +124,9 @@ export function runPrediction(input: PredictionInput): PredictionResult {
         : timing.noPlaceMatch
           ? `Result figure matches Sthir house ${timing.sthirHouseId} (Timings Number ${timing.timingNumber}) -- not available in this Prashna Kundali chart (matches no place among the current 16).`
           : `Result figure matches Sthir house ${timing.sthirHouseId} (Timings Number ${timing.timingNumber}) -- found in Prashna Kundali place${timing.matches.length === 1 ? "" : "s"} ${timing.matches.map((m) => m.place).join(", ")}.`) +
-      (timing.matches.length > 1 ? ` Matched more than one place -- shown separately per place: ${timingPerPlace}.` : ""),
+      (timing.matches.length > 1
+        ? `\nMatched more than one place -- shown separately per place:\n${timingPerPlaceLines}\n${timingTotalLine}`
+        : ""),
     output: timing,
   });
 
@@ -128,7 +134,7 @@ export function runPrediction(input: PredictionInput): PredictionResult {
     label: "Timing normalization",
     detail:
       "30 days = 1 month, 12 months = 1 year (with carry)." +
-      (timing.matches.length > 1 ? ` Summed across ${timing.matches.length} matched places (${timingPerPlace}) before normalizing.` : ""),
+      (timing.matches.length > 1 ? ` Summed across ${timing.matches.length} matched places (${timingPerPlaceInline}) before normalizing.` : ""),
     output: { years: timing.totalYears, months: timing.totalMonths, days: timing.totalDays },
   });
 

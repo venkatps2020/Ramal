@@ -270,6 +270,18 @@ Prashna Kundali place numbers it was found at -- or, when
 `noPlaceMatch`, say plainly "not available in this Prashna Kundali
 chart" instead of listing zero places.
 
+When more than one place matches, the per-place breakdown renders one
+line per place plus a `Total:` line (using the already-normalized
+`timing.totalYears/Months/Days`, not a naive re-sum of the displayed
+per-place values -- e.g. 4m + 9m = 13m must carry to 1y 1m, matching
+what `computeTiming`'s own carry logic already produces) -- owner
+request (2026-08-26, "make this ... one below the other totalling to
+final period"). The trace step's `detail` string uses real `\n`
+separators; `new-prediction/page.tsx`'s trace rendering needed
+`whitespace-pre-line` added (browsers collapse bare `\n` otherwise) --
+that class applies to every trace step's detail div, harmless for
+single-line steps.
+
 **No "Excel"/"workbook"/cell-reference language in end-user-facing
 text.** Per owner request (2026-08-26, "need not reference excel in the
 app"): the home page, Glossary, House Explorer, Stihir Kundali table, and

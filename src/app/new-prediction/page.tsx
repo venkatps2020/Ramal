@@ -360,7 +360,7 @@ export default function NewPredictionPage() {
                 {result.trace.map((step, i) => (
                   <li key={i} className="text-sm">
                     <div className="font-medium">{step.label}</div>
-                    <div className="text-black/60 dark:text-white/60">{step.detail}</div>
+                    <div className="whitespace-pre-line text-black/60 dark:text-white/60">{step.detail}</div>
                   </li>
                 ))}
               </ol>
