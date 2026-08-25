@@ -501,6 +501,14 @@ category's section, since scrolling through all 13 categories/40 rules
 in one long list was the "smaller UX polish" flagged when this
 enhancement list was first discussed.
 
+**Default House field (2026-08-26)**: `questionHouse` initializes to `1`,
+not `7`. The old default of 7 had no documented reason anywhere (not the
+workbook's benchmark example, which uses house 7 but different figures
+and Nirgam not Agam; not mentioned in the master spec) -- confirmed via
+`git log -S` that it's been `useState(7)` since this page's very first
+commit with no explanatory message, i.e. an arbitrary placeholder from
+initial scaffolding, not a deliberate choice worth preserving.
+
 ## Figure name English glosses (`StihirKundaliTable.tsx`)
 
 Owner asked (2026-08-25, "can you add english explanation for such
@@ -727,6 +735,13 @@ data migration, see below) was dropped rather than kept as a permanent
 the collapsible "Interpretive" toggle today is just "Secondary supporting
 houses" (plain text field) plus the two fallback lists above, which are
 normally empty.
+
+6. Sixth pass (2026-08-26, "can you make it in 3 columns"): the "By
+   category" grid went from `sm:grid-cols-2` to `sm:grid-cols-3`
+   directly (not a stepped `sm:...-2 lg:...-3`) -- there are 6
+   categories, so 3 columns x 2 rows reads cleanly without an
+   intermediate 2-column stop most viewports would only pass through
+   briefly.
 
 ## `suppressHydrationWarning` on both `<html>` and `<body>` (`layout.tsx`)
 
