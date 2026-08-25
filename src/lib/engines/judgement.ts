@@ -7,14 +7,18 @@
 // the workbook. Every rule below is transcribed from the source text kept
 // alongside it in comments.
 //
-// Items 3 (कष्टकारक साल), 16 (संतान संख्या) and 26 (चोर घर का या बाहर का)
-// were removed by owner decision -- their source text can't be verified
-// against Ramal Calculation.xlsx (no Excel counterpart exists for any of
-// the three), and per the owner's standing rule that verified Excel data
-// is the final authority, unverifiable PDF-only content doesn't ship.
-// itemNo therefore runs 1-42 with those three numbers absent, not 1-39.
+// Items 16 (संतान संख्या) and 26 (चोर घर का या बाहर का) were removed by
+// owner decision -- their source text can't be verified against Ramal
+// Calculation.xlsx (no Excel counterpart exists for either), and per the
+// owner's standing rule that verified Excel data is the final authority,
+// unverifiable PDF-only content doesn't ship. Item 3 (कष्टकारक साल) was
+// removed for the same reason initially (the source page's hand-drawn
+// shakal glyphs were illegible), then restored once the owner supplied a
+// page-13 transcription with each shakal hand-encoded as an explicit
+// bit-pattern -- see TROUBLESOME_YEARS_TABLE in judgement-reference.ts.
+// itemNo therefore runs 1-42 with 16 and 26 absent, not 1-39/1-40.
 import { FIGURES } from "@/lib/data/figures";
-import { ABJAD_ORDER, AGE_EXPECTANCY_TABLE } from "@/lib/data/judgement-reference";
+import { ABJAD_ORDER, AGE_EXPECTANCY_TABLE, TROUBLESOME_YEARS_TABLE } from "@/lib/data/judgement-reference";
 import { addFigure, patternsEqual } from "@/lib/engines/figure";
 import { buildPrashnaKundali } from "@/lib/engines/kundali";
 import type { Figure, FigureNature, FigurePattern, PrashnaChart } from "@/lib/types";
@@ -304,6 +308,25 @@ export const JUDGEMENT_RULES: JudgementRule[] = [
       return {
         answer: row ? `${row.age}, health ${row.health}` : "Neutral auspiciousness -- source table only covers shubh/ashubh",
         detail: `Merge of House 1 + House 4: nature ${nature ?? "?"}.`,
+      };
+    },
+  },
+  {
+    id: "R03",
+    itemNo: 3,
+    questionHi: "कष्टकारक साल",
+    questionEn: "Which years will be troublesome?",
+    category: "self",
+    sourceStatus: "SOURCE_DIRECT",
+    sourceNote:
+      "Owner-supplied page-13 transcription, each shakal hand-encoded as a bit-pattern and matched 1:1 against all 16 FIGURES (2026-08-25).",
+    compute: (chart) => {
+      const place1 = chart[1];
+      const fig = sthirFigureFor(place1);
+      const ages = fig ? TROUBLESOME_YEARS_TABLE[fig.id] : undefined;
+      return {
+        answer: ages ? ages.join(", ") : "Cannot determine",
+        detail: `Place 1: ${fig?.sourceName ?? "?"} (${place1.join(" ")}).`,
       };
     },
   },

@@ -2,47 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { buildPrashnaKundali } from "@/lib/engines/kundali";
-import { JUDGEMENT_RULES, type JudgementCategory } from "@/lib/engines/judgement";
 import { FIGURES } from "@/lib/data/figures";
 import FigureGlyph from "@/components/FigureGlyph";
-
-const CATEGORY_LABEL: Record<JudgementCategory, string> = {
-  self: "Self / General",
-  money: "Money",
-  property: "Property",
-  siblings: "Siblings",
-  children: "Children",
-  disease_enemies: "Disease & Enemies",
-  marriage: "Marriage & Relationships",
-  death: "Death & Missing Persons",
-  fortune: "Fortune & Luck",
-  career: "Career & Work",
-  income_wishes: "Income & Wishes",
-  expenditure_legal: "Expenditure, Legal & Jail",
-  theft: "Theft",
-};
-
-const CATEGORY_ORDER: JudgementCategory[] = [
-  "self",
-  "money",
-  "property",
-  "siblings",
-  "children",
-  "marriage",
-  "disease_enemies",
-  "death",
-  "fortune",
-  "career",
-  "income_wishes",
-  "expenditure_legal",
-  "theft",
-];
-
-const STATUS_PILL: Record<string, string> = {
-  SOURCE_DIRECT: "border-emerald-600/40 text-emerald-700 dark:text-emerald-400",
-  SOURCE_DERIVED: "border-[#8a6a3c]/40 text-[#8a6a3c]",
-  NEEDS_CONFIRMATION: "border-red-600/40 text-red-700 dark:text-red-400",
-};
+import JudgementResults from "@/components/JudgementResults";
 
 function randomFigureId(): number {
   return Math.floor(Math.random() * 16) + 1;
@@ -53,8 +15,6 @@ export default function JudgementLibraryPage() {
   const [gender, setGender] = useState<"FEMALE" | "MALE">("FEMALE");
 
   const { chart, status } = useMemo(() => buildPrashnaKundali(figureIds), [figureIds]);
-
-  const categories = Array.from(new Set(CATEGORY_ORDER));
 
   function setFigureAt(index: number, id: number) {
     setFigureIds((prev) => {
@@ -73,10 +33,10 @@ export default function JudgementLibraryPage() {
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Judgement Library</h1>
         <p className="mt-1 max-w-prose text-sm text-black/60 dark:text-white/60">
-          39 practical judgement rules from the source PDF (loans, property, marriage, theft,
-          court cases, and more), computed live against one chart. Three source items (difficult
-          years, number of children, thief inside/outside) were dropped by owner decision -- their
-          source text has no Excel counterpart to verify against.
+          40 practical judgement rules from the source PDF (loans, property, marriage, theft,
+          court cases, and more), computed live against one chart. Two source items (number of
+          children, thief inside/outside) were dropped by owner decision -- their source text has
+          no Excel counterpart to verify against.
         </p>
       </div>
 
@@ -137,44 +97,7 @@ export default function JudgementLibraryPage() {
         )}
       </section>
 
-      {categories.map((cat) => {
-        const rules = JUDGEMENT_RULES.filter((r) => r.category === cat).sort((a, b) => a.itemNo - b.itemNo);
-        if (rules.length === 0) return null;
-        return (
-          <section key={cat} className="space-y-3">
-            <h2 className="font-display text-lg font-semibold">{CATEGORY_LABEL[cat]}</h2>
-            <div className="space-y-2">
-              {rules.map((rule) => {
-                const outcome = rule.compute ? rule.compute(chart, { gender, motherFigureIds: figureIds }) : null;
-                return (
-                  <div key={rule.id} className="rounded border border-black/10 p-3 dark:border-white/10">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <span className="mono text-xs text-black/40 dark:text-white/40">#{rule.itemNo}</span>{" "}
-                        <span className="font-medium">{rule.questionEn}</span>
-                        <div className="text-xs text-black/45 dark:text-white/45">{rule.questionHi}</div>
-                      </div>
-                      <span className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wide ${STATUS_PILL[rule.sourceStatus]}`}>
-                        {rule.sourceStatus.replace("_", " ")}
-                      </span>
-                    </div>
-                    {outcome ? (
-                      <div className="mt-2 text-sm">
-                        <span className="font-medium text-[#3b4a6b] dark:text-[#93a6d8]">{outcome.answer}</span>
-                        <p className="mt-0.5 text-xs text-black/50 dark:text-white/50">{outcome.detail}</p>
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-xs text-black/50 dark:text-white/50">
-                        Not computed -- {rule.sourceNote}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+      <JudgementResults chart={chart} ctx={{ gender, motherFigureIds: figureIds }} />
     </div>
   );
 }

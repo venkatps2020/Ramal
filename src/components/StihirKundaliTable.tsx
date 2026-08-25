@@ -2,9 +2,16 @@
 
 import { useState } from "react";
 import { FIGURES } from "@/lib/data/figures";
+import { FIGURE_NAME_GLOSS, type GlossConfidence } from "@/lib/data/figure-name-glosses";
 import { patternsEqual } from "@/lib/engines/figure";
 import FigureGlyph from "@/components/FigureGlyph";
 import type { PrashnaChart } from "@/lib/types";
+
+const GLOSS_STYLE: Record<GlossConfidence, string> = {
+  high: "text-black/60 dark:text-white/60",
+  medium: "text-black/45 dark:text-white/45",
+  uncertain: "italic text-black/35 dark:text-white/35",
+};
 
 /** Full "Stihir Kundali" sheet reference table: the 16 fixed canonical figures. Collapsed by default. */
 export default function StihirKundaliTable({ chart }: { chart?: PrashnaChart | null }) {
@@ -28,6 +35,11 @@ export default function StihirKundaliTable({ chart }: { chart?: PrashnaChart | n
         <code>Ramal Calculation.xlsx</code>.
         {chart && " Rows highlighted below appear somewhere in the current 16-place Prashna Kundali."}
       </p>
+      <p className="mt-1 text-xs text-black/45 dark:text-white/45">
+        &quot;English gloss&quot; below is <span className="italic">not</span> sourced from the workbook or PDF -- neither
+        translates the figure names themselves. It&apos;s a best-effort Arabic/Urdu etymology guess, shown lighter/italic
+        the less confident it is.
+      </p>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -37,12 +49,13 @@ export default function StihirKundaliTable({ chart }: { chart?: PrashnaChart | n
       </button>
       {open && (
       <div className="mt-3 overflow-x-auto rounded border border-black/10 dark:border-white/10">
-        <table className="w-full min-w-[920px] text-sm">
+        <table className="w-full min-w-[1180px] text-sm">
           <thead>
             <tr className="border-b border-black/10 text-left text-xs uppercase tracking-wide text-black/50 dark:border-white/10 dark:text-white/50">
               <th className="px-3 py-2">#</th>
               <th className="px-3 py-2">Figure</th>
               <th className="px-3 py-2">Name</th>
+              <th className="px-3 py-2">English gloss</th>
               <th className="px-3 py-2">Pattern</th>
               <th className="px-3 py-2">Lord</th>
               <th className="px-3 py-2">Type</th>
@@ -72,6 +85,9 @@ export default function StihirKundaliTable({ chart }: { chart?: PrashnaChart | n
                     <FigureGlyph pattern={f.pattern} />
                   </td>
                   <td className="px-3 py-2 font-medium">{f.sourceName}</td>
+                  <td className={`px-3 py-2 text-xs ${GLOSS_STYLE[FIGURE_NAME_GLOSS[f.id].confidence]}`}>
+                    {FIGURE_NAME_GLOSS[f.id].gloss}
+                  </td>
                   <td className="px-3 py-2 font-mono text-xs">{f.pattern.join(" ")}</td>
                   <td className="px-3 py-2">{f.lord}</td>
                   <td className="px-3 py-2">{f.type}</td>

@@ -14,18 +14,23 @@ TypeScript modules, prediction history lives in `localStorage`.
 ```
 src/
   app/
-    page.tsx                 -- Home page, recent predictions
-    new-prediction/page.tsx  -- Draw figures, ask question, calculate, view trace
-    judgement/page.tsx        -- Judgement Library: 39 PDF rules computed live
+    page.tsx                 -- Home page
+    new-prediction/page.tsx  -- Draw figures, ask question, calculate, view trace,
+                                 Judgement Library (same chart, collapsed by default)
+    judgement/page.tsx        -- Judgement Library: 40 PDF rules computed live,
+                                  own four-figure picker (independent of New Prediction)
     layout.tsx                -- Root layout, dark mode init
   components/
     layout/Navbar.tsx
     FigureGlyph.tsx           -- Renders a 4-symbol pattern as bindu/rekha marks
-    RecentPredictions.tsx
     HouseCombobox.tsx          -- Searchable House picker (see "House search" below)
-    HouseDetailPanel.tsx       -- Direct vs. Interpretive vs. PPT-source breakdown for one house
+    HouseDetailPanel.tsx       -- Direct vs. Interpretive breakdown for one house,
+                                   organized "By category" (see below)
+    JudgementResults.tsx       -- Shared category-grouped rendering of all 40 rules;
+                                   used by both new-prediction/page.tsx and judgement/page.tsx
     PrashnaKundaliChart.tsx    -- Traditional 8/4/4 Stihir Kundali layout (see below)
-    StihirKundaliTable.tsx     -- Full 16-figure reference table, collapsed by default
+    StihirKundaliTable.tsx     -- Full 16-figure reference table, collapsed by default,
+                                   includes an unverified "English gloss" column (see below)
   lib/
     house-search.ts            -- Keyword ranking across all "12 Houses" sheet fields
     engines/
@@ -35,19 +40,29 @@ src/
       timing.ts                 -- Timing lookup + 30-day/12-month normalization
       quick-duration.ts         -- Short Timing quick unit lookup (Prediction!B90:F91)
       predict.ts                -- Orchestrates the full pipeline + calculation trace
-      judgement.ts              -- The 39-rule practical judgement library (PDF-sourced)
-      __tests__/                -- 91 Vitest tests: exhaustive combinations,
+      judgement.ts              -- The 40-rule practical judgement library (PDF-sourced)
+      __tests__/                -- 92 Vitest tests: exhaustive combinations,
                                     a real cell-verified workbook benchmark, guards,
                                     the judgement rule registry
     data/
-      house-ppt-notes.ts        -- PPT slides 24-35 (Houses 1-12), phrase-split verbatim
+      house-ppt-notes.ts        -- PPT slides 24-35 (Houses 1-12), phrase-split verbatim.
+                                    Kept as retained source data (data-integrity.test.ts
+                                    still checks it) but no longer rendered anywhere in
+                                    the UI -- see "House Detail panel layout" below.
       figures.ts, houses.ts, timings.ts, questions.ts, glossary.ts
       -- all generated from Ramal Calculation.xlsx by scripts still in
          /private/tmp .../scratchpad/extract.py during this build; re-run
          extraction against a fresh workbook export by adapting that script
          (not yet wired into `npm run extract-data`).
-      judgement-reference.ts   -- Abjad order + age table for the judgement library
+      judgement-reference.ts   -- Abjad order + life-expectancy/troublesome-years
+                                   tables for the judgement library
                                    (authority: Ramal-jyotish.pdf, not the workbook)
+      special-derived-categories.ts, question-use-categories.ts
+      -- hand-authored editorial mappings (NOT generated, NOT sourced) that sort a
+         house's specialDerived/primaryQuestionUse items into HouseDetailPanel's "By
+         category" buckets -- see "House Detail panel layout" below.
+      figure-name-glosses.ts   -- Best-effort, explicitly-unverified English etymology
+                                   for the 16 figure names -- see below.
     history.ts                 -- localStorage prediction history (client-only)
     types/index.ts
 scripts/
@@ -180,7 +195,7 @@ implemented (house 8, cards 2/8/4/9: `E90` cached `2`, `F90` cached
 `"Week(s)"` -- matches exactly) and are covered by the exhaustive oracle
 above, not just the unit tests.
 
-## Judgement Library (39 rules, `Ramal-jyotish.pdf` "फलादेश"/"प्रगत रमल")
+## Judgement Library (40 rules, `Ramal-jyotish.pdf` "फलादेश"/"प्रगत रमल")
 
 Authority here is the PDF (conceptual/source material per master spec §2),
 not the workbook -- unlike everything else in this app. Every rule was
@@ -189,7 +204,7 @@ orientation pass) before being encoded, and each carries a `sourceStatus`
 (`SOURCE_DIRECT` / `SOURCE_DERIVED`) per the master spec's own Appendix C
 provenance model.
 
-**All 39 shipped rules are computed live** against a chart built from four
+**All 40 shipped rules are computed live** against a chart built from four
 drawn Mother Figures, using shared primitives (`isDakhilOrSabit`,
 `isKharijOrMunqalib`, `isShubh`, house merges via `addFigure`) plus a few
 bespoke algorithms:
@@ -199,6 +214,17 @@ bespoke algorithms:
   chain to a witness place, then reads that place's own Sthir Kundali
   identity. Verified against the source's own worked example (15 -> 14 ->
   11 -> 5, landing on Sthir house 8).
+- **Item 3** (कष्टकारक साल -- troublesome years) is a direct lookup on
+  whichever figure lands in Place 1 (the first Mother Figure), via
+  `TROUBLESOME_YEARS_TABLE` in `judgement-reference.ts`. Restored
+  2026-08-25 after initially being removed for illegible source glyphs
+  (see below) -- the owner supplied a page-13 transcription with each of
+  the source's six shakal groups hand-encoded as an explicit 4-digit bit
+  pattern ("-" = 1, "0" = 0), which was matched 1:1 against all 16
+  `FIGURES` patterns with zero ambiguity and zero leftover, confirming
+  both the age-lists (some values corrected from the original hard-to-read
+  scan, e.g. 48 not 58 in the first group) and which figures each list
+  applies to.
 - **Item 27** (thief's appearance) uses a *different* 16-figure ordering
   than the normal Stihir house order (`ABJAD_ORDER` in
   `judgement-reference.ts`) -- verified exactly against the source's own
@@ -210,26 +236,19 @@ bespoke algorithms:
   on which iteration stabilizes. Verified two ways: a hand-derived fixture
   (drawing Jamaat four times stabilizes immediately, iteration 1) and the
   source's own worked example's *prose* (not its hand-drawn diagrams, which
-  were deliberately not transcribed -- same glyph-legibility risk as the
-  three removed items below): it states in words that the chart stabilizes
+  were deliberately not transcribed -- same glyph-legibility risk that
+  originally blocked item 3, see below): it states in words that the chart stabilizes
   at iteration 4 with quality शुभ/Auspicious, matching this engine's
   `i === 4` bucket exactly.
 
-**Items 3, 16, and 26 were removed entirely**, by explicit owner decision
-(2026-08-24): none of the three has an Excel counterpart to verify
-against, and per the owner's standing rule that verified Excel data is the
-final authority, unverifiable PDF-only content doesn't ship rather than
-staying half-implemented. What blocked each, for whoever revisits this:
+**Items 16 and 26 remain removed entirely**, by explicit owner decision
+(2026-08-24): neither has an Excel counterpart to verify against, and per
+the owner's standing rule that verified Excel data is the final authority,
+unverifiable PDF-only content doesn't ship rather than staying
+half-implemented. (Item 3 was in this category too until it was restored
+2026-08-25 -- see above.) What blocks each of the remaining two, for
+whoever revisits this:
 
-- **Item 3** (difficult years) groups figures using hand-drawn symbols
-  rendered in a compressed 2-row inline notation (unlike the rest of the
-  document's full 4-row blocks) -- only one figure (Tariq, the all-dot
-  pattern) was legible with confidence. The age-lists themselves *were*
-  legible: `[8,12,16,24,32,42,58,62,66,74,82]` /
-  `[12,16,24,28,32,42,64,66,68,70,84]` / `[12,20,23,27,28,36,45,60,71,80]` /
-  `[14,16,28,20,22,27,34,39,64,66,69,70,82]` /
-  `[6,14,18,20,22,26,34,44,56,64,69,70,72,77]` -- if these ever get a
-  figure-name mapping from the owner, re-adding this rule is straightforward.
 - **Item 16** (number of children) maps a planetary lord to a count but the
   source only lists 5 of the 9 possible lords (Sun=4, Moon=2, Jupiter=3,
   Venus=6, Saturn=1 -- Mercury/Mars/Rahu/Ketu unlisted). Checked and ruled
@@ -245,6 +264,57 @@ testing Dakhil/Sabit like most of the other rules, but the source actually
 specifies Kharij/Munqalib for both. The regression test in
 `judgement.test.ts` ("R33 and R39 test Kharij/Munqalib...") exists
 specifically to catch this class of transcription slip again.
+
+## Judgement Library on the New Prediction page (`JudgementResults.tsx`)
+
+Per owner request (2026-08-25, "given that these are predictions based on
+4 chosen mother figures, can these not appear below the Calculation
+trace"): the same 40-rule Judgement Library now also renders on
+`new-prediction/page.tsx`, directly below "Show calculation trace",
+behind its own "Show Judgement Library" toggle (collapsed by default).
+It runs against `result.chart` -- the exact same 16-place chart the
+Yes/No prediction and timing were computed from, built from the same
+four drawn Mother Figures -- not a second independent draw.
+
+The category-grouped rendering (13 categories, one card per rule with
+question/answer/detail/`sourceStatus` pill) was previously inline in
+`judgement/page.tsx` only; it's now extracted into a shared
+`JudgementResults` component (`chart` + `ctx: JudgementContext` props) so
+both pages render identically instead of maintaining two copies. This
+also shrank `/judgement`'s own page bundle (9.48kB -> 1.41kB) since the
+category logic moved into a shared chunk.
+
+`new-prediction/page.tsx` also gained a **Gender** input (Female/Male
+toggle, defaults to Female), placed in the initial input form right after
+Short Timing per owner instruction -- it's only read by Judgement item 21
+("Will a second marriage be beneficial?"), same as on the standalone
+`/judgement` page; every other rule ignores it. The two pages' figure
+pickers are intentionally independent -- `/judgement` still has its own
+four-dropdown picker and "Draw random" button, unrelated to whatever's
+drawn on New Prediction.
+
+## Figure name English glosses (`StihirKundaliTable.tsx`)
+
+Owner asked (2026-08-25, "can you add english explanation for such
+words") for an English translation of the 16 figure names (Lahyan,
+Jamaat, Faraha, ...). Neither `Ramal Calculation.xlsx`'s own "Meaning"
+sheet (extracted verbatim into `glossary.ts`) nor `Ramal-jyotish.pdf`
+translates the proper names themselves -- the workbook's glossary only
+covers generic terminology (Dakhil/Kharij/Sabit/Munqalib, gender,
+direction, element). So there's no sourced translation to pull from,
+unlike everything else in this app.
+
+`figure-name-glosses.ts` holds Claude's own best-effort Arabic/Urdu
+etymology guesses instead, each tagged `high` / `medium` / `uncertain`
+confidence, rendered as a new "English gloss" column in
+`StihirKundaliTable` styled progressively lighter/italic the less
+confident it is (e.g. Faraha = "Joy", high confidence, renders plainly;
+Lahyan/Ankeesh/Uputul-* show "No confident translation identified" in
+muted italics rather than a fabricated guess). An explicit caveat line
+above the table states the column is not sourced data. Kept in its own
+file, never merged into `figures.ts`'s `meaning` field (which *is*
+sourced, from the workbook's Dakhil/Kharij/Sabit/Munqalib scale) so the
+two are never confused.
 
 ## House search (`lib/house-search.ts`)
 
@@ -299,7 +369,7 @@ Mapping from the workbook's "12 Houses - Summary" columns onto
 | Ramal Figure | `figureName` |
 | Core Theme | `primaryTheme`, and also `directItems` (theme split on `" / "` into short tags, e.g. "Partner / Marriage / Business Partnership" -> "Partner; Marriage; Business Partnership") |
 | Health / Body ... Primary Question Use | the matching 8 category fields, each bullet-list cell (`"• a\n• b"`) joined `"a; b"` to match the existing `splitItems()` convention |
-| *(none)* | `expandedItems` -- always `""` now. The old field was exactly the redundant, not-properly-separated derived layer this consolidated source's own editorial rules ("duplicates removed", "derived items not silently promoted to direct rules") were built to eliminate; `HouseDetailPanel`'s `BulletList` already had a graceful empty-state ("Nothing beyond what's already shown above.") from the earlier dedup work, so no UI change was needed. |
+| *(none)* | `expandedItems` -- always `""` now. The old field was exactly the redundant, not-properly-separated derived layer this consolidated source's own editorial rules ("duplicates removed", "derived items not silently promoted to direct rules") were built to eliminate; since it's always empty it simply never renders anywhere in `HouseDetailPanel`, so no UI change was needed for it specifically. |
 | *(none)* | `secondarySupportingHouses` -- kept verbatim from the old data; the new source doesn't cover cross-house references, and none was supplied to replace it with. |
 
 Regenerating: re-run the extraction (`openpyxl`, `data_only=True`, sheet
@@ -342,22 +412,22 @@ file in this project.
 
 Authority is the PPT (source/conceptual per master spec §2), distinct
 from the Excel-sourced Direct tier. Originally shown as its own
-separately-badged, collapsed-by-default sub-section; per owner request
-("What this house covers and PPT source are same, merge them") it's now
-merged into the "What this house covers" section alongside `directItems`,
-with both source tiers still individually badged (green "Direct", blue
-"PPT · slide N") so the merge doesn't blur *which* source an item came
-from -- only where it's displayed. The panel's shared dedupe pass (a
-running `Set` of normalized items, applied in display-priority order)
-covers both tiers together, so a phrase appearing in both `directItems`
-and the PPT phrases only renders once. See "House Detail panel layout"
-below for how items are currently rendered.
+separately-badged sub-section, then merged into a "What this house
+covers" section alongside `directItems` -- but per owner decision
+(2026-08-25, "What this house covers is not required as it is already
+available in drop down") that whole section, PPT phrases included, was
+**removed from `HouseDetailPanel` entirely**: `HouseCombobox`'s search
+snippet already surfaces the same kind of coverage text when picking a
+house, so a second, static copy of it inside the detail panel was
+redundant. `house-ppt-notes.ts` itself is untouched and still exercised
+by `data-integrity.test.ts` -- only its UI rendering was dropped. See
+"House Detail panel layout" below for what the panel shows today.
 
 ## House Detail panel layout (`HouseDetailPanel.tsx`)
 
-Went through two rounds of readability feedback -- worth knowing the
-end state so a future "make it more readable" request doesn't re-litigate
-settled decisions:
+Went through several rounds of readability/content feedback -- worth
+knowing the end state so a future "make it more readable" or "simplify
+this" request doesn't re-litigate settled decisions:
 
 1. First pass split the dense source paragraphs into scannable pieces at
    all (semicolon-joined sheet cells were rendered as one dense
@@ -369,19 +439,48 @@ settled decisions:
    something better") replaced the remaining wrapped-pill chip layout
    (`TagList`) everywhere in the panel with a single `ItemList`
    component: every field renders as a vertical list, one item per line,
-   each with a small tone-colored marker dot (green = Direct, blue =
-   PPT, amber = Interpretive) instead of a colored pill background --
-   chips read as a tag cloud, a vertical list reads top-to-bottom like
-   normal content. Sections are grouped into one bordered card with
-   dividers (`divide-y`) instead of separate floating blocks, and a
-   header (house number, figure name, `primaryTheme`) was added since
-   nothing inside the panel previously restated which house it was for.
+   each with a small tone-colored marker dot (green = Direct, amber =
+   Interpretive) instead of a colored pill background -- chips read as a
+   tag cloud, a vertical list reads top-to-bottom like normal content.
+   Sections are grouped into one bordered card with dividers
+   (`divide-y`) instead of separate floating blocks, and a header (house
+   number, figure name, `primaryTheme`) was added since nothing inside
+   the panel previously restated which house it was for.
+4. Fourth pass (2026-08-25, "What this house covers is not required...")
+   dropped the whole merged Direct+PPT section -- see "House PPT notes"
+   above.
+5. Fifth pass (2026-08-25, "items in special / derived associations can
+   be classified within By Category", then "take Used for questions
+   about, rephrase them as bullets and add under categories") moved both
+   remaining standalone sections into "By category" instead of listing
+   them separately:
+   - `specialDerived` items are sorted into whichever of the six
+     category buckets (Health/Body, Family, Money, Work/Career, Travel,
+     Psychological) fits best, via a hand-classified lookup in
+     `special-derived-categories.ts` (keyed by houseId + normalized item
+     text). They render as amber "Interpretive" items directly under
+     that category's own green "Direct" items, same `ItemList`, two
+     tones -- not blurred together per master spec §13.
+   - `primaryQuestionUse` items go through the same treatment via
+     `question-use-categories.ts`, but are *also* rewritten from question
+     form ("Will I get money?") into a bullet phrase ("Getting money")
+     for the merge -- and rendered with the **green "Direct" tone**,
+     because `primaryQuestionUse` is itself a Direct-tier workbook
+     column, same as the category fields; only its *phrasing* changed,
+     not its provenance.
+   - Both lookups are keyed defensively: any item that doesn't match
+     (e.g. after `houses.ts` regenerates with different phrasing) falls
+     back to a small list in the panel's collapsible "Interpretive"
+     section rather than silently disappearing. As of 2026-08-25 every
+     item across all 12 houses matches -- the fallback currently renders
+     nothing, verified with a one-off coverage script during that change.
 
 The now-dead "Expanded items" subsection (always empty since the house
 data migration, see below) was dropped rather than kept as a permanent
-"Nothing beyond what's already shown above." fixture -- Special/Derived
-and Secondary Supporting Houses remain under the same collapsible
-"Interpretive" toggle.
+"Nothing beyond what's already shown above." fixture. What remains behind
+the collapsible "Interpretive" toggle today is just "Secondary supporting
+houses" (plain text field) plus the two fallback lists above, which are
+normally empty.
 
 ## `suppressHydrationWarning` on both `<html>` and `<body>` (`layout.tsx`)
 
@@ -437,7 +536,7 @@ the project's implementation-plan artifact for the full rationale.
 npm run dev      # Dev server at http://localhost:3001
 npm run build    # Production build
 npm run start    # Serve production build (also port 3001)
-npm test         # Run all 91 Vitest tests
+npm test         # Run all 92 Vitest tests
 npm run test:watch
 npm run validate:oracle  # Independent Excel-formula cross-check, all 1,572,864 cases (~15s)
 ```

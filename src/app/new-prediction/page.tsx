@@ -9,6 +9,7 @@ import HouseCombobox from "@/components/HouseCombobox";
 import HouseDetailPanel from "@/components/HouseDetailPanel";
 import StihirKundaliTable from "@/components/StihirKundaliTable";
 import PrashnaKundaliChart from "@/components/PrashnaKundaliChart";
+import JudgementResults from "@/components/JudgementResults";
 import type { AgamNirgam, PredictionResult } from "@/lib/types";
 
 const STATUS_LABEL: Record<PredictionResult["status"], string> = {
@@ -38,9 +39,11 @@ export default function NewPredictionPage() {
   const [questionHouse, setQuestionHouse] = useState(7);
   const [questionType, setQuestionType] = useState<AgamNirgam>("AGAM");
   const [shortTiming, setShortTiming] = useState(false);
+  const [gender, setGender] = useState<"FEMALE" | "MALE">("FEMALE");
   const [houseDetailOpen, setHouseDetailOpen] = useState(false);
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [traceOpen, setTraceOpen] = useState(false);
+  const [judgementOpen, setJudgementOpen] = useState(false);
 
   function setFigureAt(index: number, id: number) {
     setFigureIds((prev) => {
@@ -172,6 +175,27 @@ export default function NewPredictionPage() {
               {shortTiming ? "Yes" : "No"}
             </button>
           </div>
+          <div>
+            <label className="block text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
+              Gender (for Judgement Library item 21)
+            </label>
+            <div className="mt-1 flex gap-2">
+              {(["FEMALE", "MALE"] as const).map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setGender(g)}
+                  className={`rounded border px-3 py-1.5 text-sm ${
+                    gender === g
+                      ? "border-[#3b4a6b] bg-[#3b4a6b]/10 text-[#3b4a6b] dark:border-[#93a6d8] dark:text-[#93a6d8]"
+                      : "border-black/15 dark:border-white/15"
+                  }`}
+                >
+                  {g === "FEMALE" ? "Female" : "Male"}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -294,6 +318,27 @@ export default function NewPredictionPage() {
               </ol>
             )}
           </div>
+
+          {result.chart && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setJudgementOpen((v) => !v)}
+                className="text-xs font-medium uppercase tracking-wide text-[#3b4a6b] dark:text-[#93a6d8]"
+              >
+                {judgementOpen ? "Hide Judgement Library" : "Show Judgement Library"}
+              </button>
+              <p className="mt-1 text-xs text-black/45 dark:text-white/45">
+                40 practical judgement rules (loans, property, marriage, theft, and more) computed
+                live against these same four Mother Figures.
+              </p>
+              {judgementOpen && (
+                <div className="mt-3">
+                  <JudgementResults chart={result.chart} ctx={{ gender, motherFigureIds: figureIds }} />
+                </div>
+              )}
+            </div>
+          )}
         </section>
       )}
 

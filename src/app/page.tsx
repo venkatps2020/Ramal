@@ -1,5 +1,4 @@
 import Link from "next/link";
-import RecentPredictions from "@/components/RecentPredictions";
 
 export default function Home() {
   return (
@@ -23,13 +22,6 @@ export default function Home() {
           Draw or enter four Mother Figures, pick a house and question type, and calculate.
         </p>
       </Link>
-
-      <section>
-        <h2 className="font-display text-lg font-semibold">Recent predictions</h2>
-        <div className="mt-3">
-          <RecentPredictions />
-        </div>
-      </section>
     </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { HOUSE_INTERPRETATIONS } from "@/lib/data/houses";
-import { HOUSE_PPT_NOTES } from "@/lib/data/house-ppt-notes";
+import { SPECIAL_DERIVED_CATEGORY, normalizeSpecialDerivedItem } from "@/lib/data/special-derived-categories";
+import { QUESTION_USE_CATEGORY } from "@/lib/data/question-use-categories";
 import type { HouseInterpretation } from "@/lib/types";
 
 const CATEGORIES: Array<[string, keyof HouseInterpretation]> = [
@@ -26,15 +27,11 @@ function normalize(item: string): string {
   return item.toLowerCase().replace(/\s+/g, " ").trim().replace(/[.,]$/, "");
 }
 
-type Tone = "direct" | "interpretive" | "ppt";
+type Tone = "direct" | "interpretive";
 
 const TONE_STYLES: Record<Tone, { badge: string; dot: string }> = {
   direct: { badge: "border-emerald-600/40 text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-600 dark:bg-emerald-400" },
   interpretive: { badge: "border-[#8a6a3c]/40 text-[#8a6a3c]", dot: "bg-[#8a6a3c]" },
-  ppt: {
-    badge: "border-[#3b4a6b]/40 text-[#3b4a6b] dark:border-[#93a6d8]/40 dark:text-[#93a6d8]",
-    dot: "bg-[#3b4a6b] dark:bg-[#93a6d8]",
-  },
 };
 
 function Badge({ tone, children }: { tone: Tone; children: React.ReactNode }) {
@@ -42,15 +39,6 @@ function Badge({ tone, children }: { tone: Tone; children: React.ReactNode }) {
     <span className={`rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${TONE_STYLES[tone].badge}`}>
       {children}
     </span>
-  );
-}
-
-function SectionHeading({ tone, children }: { tone: Tone; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Badge tone={tone}>{tone === "ppt" ? "PPT" : tone === "direct" ? "Direct" : "Interpretive"}</Badge>
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-black/55 dark:text-white/55">{children}</h4>
-    </div>
   );
 }
 
@@ -69,14 +57,9 @@ function ItemList({ items, tone = "direct" }: { items: string[]; tone?: Tone }) 
   );
 }
 
-function EmptyNote({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-xs italic text-black/40 dark:text-white/40">{children}</p>;
-}
-
 export default function HouseDetailPanel({ houseId }: { houseId: number }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const house = HOUSE_INTERPRETATIONS.find((h) => h.id === houseId);
-  const pptNote = HOUSE_PPT_NOTES.find((n) => n.houseId === houseId);
   if (!house) return null;
 
   // Dedupe exact (normalized) repeats across the whole panel, in display
@@ -98,13 +81,49 @@ export default function HouseDetailPanel({ houseId }: { houseId: number }) {
     return dedupe(splitItems(text));
   }
 
-  const directItems = dedupeText(house.directItems);
-  const pptItems = pptNote ? dedupe(pptNote.phrases) : [];
-  const questionUseItems = dedupeText(house.primaryQuestionUse);
-  const categoryItems = CATEGORIES.map(([label, field]) => [label, dedupeText(house[field] as string)] as const).filter(
-    ([, items]) => items.length > 0
-  );
-  const specialItems = dedupeText(house.specialDerived);
+  // specialDerived and primaryQuestionUse items both get sorted into the
+  // same "By category" buckets (owner request) instead of listed
+  // separately -- classified by SPECIAL_DERIVED_CATEGORY /
+  // QUESTION_USE_CATEGORY, keyed by normalized item text; question-use
+  // items are also rewritten from question form ("Will I get money?") into
+  // a bullet phrase ("Getting money"). Anything that doesn't match a
+  // lookup (e.g. after houses.ts regenerates with different phrasing)
+  // falls back to the collapsible section below rather than silently
+  // disappearing.
+  const specialDerivedByField = new Map<keyof HouseInterpretation, string[]>();
+  const uncategorizedSpecialItems: string[] = [];
+  for (const item of splitItems(house.specialDerived)) {
+    const field = SPECIAL_DERIVED_CATEGORY[house.id]?.[normalizeSpecialDerivedItem(item)];
+    if (field) {
+      const bucket = specialDerivedByField.get(field) ?? [];
+      bucket.push(item);
+      specialDerivedByField.set(field, bucket);
+    } else {
+      uncategorizedSpecialItems.push(item);
+    }
+  }
+
+  const questionUseByField = new Map<keyof HouseInterpretation, string[]>();
+  const uncategorizedQuestionItems: string[] = [];
+  for (const item of splitItems(house.primaryQuestionUse)) {
+    const entry = QUESTION_USE_CATEGORY[house.id]?.[normalizeSpecialDerivedItem(item)];
+    if (entry) {
+      const bucket = questionUseByField.get(entry.field) ?? [];
+      bucket.push(entry.bullet);
+      questionUseByField.set(entry.field, bucket);
+    } else {
+      uncategorizedQuestionItems.push(item);
+    }
+  }
+
+  const categoryItems = CATEGORIES.map(([label, field]) => {
+    const direct = [...dedupeText(house[field] as string), ...dedupe(questionUseByField.get(field) ?? [])];
+    const interpretive = dedupe(specialDerivedByField.get(field) ?? []);
+    return [label, direct, interpretive] as const;
+  }).filter(([, direct, interpretive]) => direct.length > 0 || interpretive.length > 0);
+
+  const specialItems = dedupe(uncategorizedSpecialItems);
+  const questionItems = dedupe(uncategorizedQuestionItems);
 
   return (
     <div className="mt-3 divide-y divide-black/10 rounded-lg border border-black/10 dark:divide-white/10 dark:border-white/10">
@@ -115,32 +134,15 @@ export default function HouseDetailPanel({ houseId }: { houseId: number }) {
         <p className="mt-0.5 text-sm font-semibold text-black/85 dark:text-white/85">{house.primaryTheme}</p>
       </div>
 
-      <div className="p-4">
-        <SectionHeading tone="direct">What this house covers</SectionHeading>
-        <ItemList items={directItems} tone="direct" />
-        {pptNote && pptItems.length > 0 && (
-          <>
-            <p className="mt-3 text-[10px] uppercase tracking-wide text-black/40 dark:text-white/40">
-              Also per PPT &middot; slide {pptNote.slideNumber}
-            </p>
-            <ItemList items={pptItems} tone="ppt" />
-          </>
-        )}
-      </div>
-
-      <div className="p-4">
-        <SectionHeading tone="direct">Used for questions about</SectionHeading>
-        <ItemList items={questionUseItems} tone="direct" />
-      </div>
-
       {categoryItems.length > 0 && (
         <div className="p-4">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-black/55 dark:text-white/55">By category</h4>
           <div className="mt-2 grid gap-4 sm:grid-cols-2">
-            {categoryItems.map(([label, items]) => (
+            {categoryItems.map(([label, direct, interpretive]) => (
               <div key={label}>
                 <h5 className="text-[11px] font-semibold uppercase tracking-wide text-black/45 dark:text-white/45">{label}</h5>
-                <ItemList items={items} tone="direct" />
+                <ItemList items={direct} tone="direct" />
+                <ItemList items={interpretive} tone="interpretive" />
               </div>
             ))}
           </div>
@@ -151,21 +153,27 @@ export default function HouseDetailPanel({ houseId }: { houseId: number }) {
         <button type="button" onClick={() => setMoreOpen((v) => !v)} className="flex items-center gap-2 text-left">
           <Badge tone="interpretive">Interpretive</Badge>
           <span className="text-xs font-semibold uppercase tracking-wide text-black/55 dark:text-white/55">
-            {moreOpen ? "Hide" : "Show"} special / derived associations
+            {moreOpen ? "Hide" : "Show"} secondary supporting houses
           </span>
         </button>
         {moreOpen && (
           <div className="mt-3 space-y-4">
-            <div>
-              <h5 className="text-[11px] font-semibold uppercase tracking-wide text-black/45 dark:text-white/45">
-                Special / derived associations
-              </h5>
-              {specialItems.length > 0 ? (
+            {specialItems.length > 0 && (
+              <div>
+                <h5 className="text-[11px] font-semibold uppercase tracking-wide text-black/45 dark:text-white/45">
+                  Special / derived associations
+                </h5>
                 <ItemList items={specialItems} tone="interpretive" />
-              ) : (
-                <EmptyNote>Nothing beyond what&apos;s already shown above.</EmptyNote>
-              )}
-            </div>
+              </div>
+            )}
+            {questionItems.length > 0 && (
+              <div>
+                <h5 className="text-[11px] font-semibold uppercase tracking-wide text-black/45 dark:text-white/45">
+                  Used for questions about
+                </h5>
+                <ItemList items={questionItems} tone="direct" />
+              </div>
+            )}
             <div>
               <h5 className="text-[11px] font-semibold uppercase tracking-wide text-black/45 dark:text-white/45">
                 Secondary supporting houses

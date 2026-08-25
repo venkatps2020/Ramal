@@ -9,7 +9,7 @@ import {
   isAshubh,
 } from "@/lib/engines/judgement";
 import { buildPrashnaKundali } from "@/lib/engines/kundali";
-import { ABJAD_ORDER } from "@/lib/data/judgement-reference";
+import { ABJAD_ORDER, TROUBLESOME_YEARS_TABLE } from "@/lib/data/judgement-reference";
 import { FIGURES } from "@/lib/data/figures";
 import type { PrashnaChart } from "@/lib/types";
 
@@ -121,23 +121,35 @@ describe("R42 forecastUpcomingYear", () => {
 });
 
 describe("JUDGEMENT_RULES registry", () => {
-  // Items 3, 16 and 26 were removed by owner decision: no Excel counterpart
+  // Items 16 and 26 were removed by owner decision: no Excel counterpart
   // exists to verify them against, and unverifiable PDF-only content
-  // doesn't ship. itemNo therefore runs 1-42 with those three absent.
-  const REMOVED_ITEM_NOS = [3, 16, 26];
+  // doesn't ship. Item 3 was restored (2026-08-25) once the owner supplied
+  // a page-13 transcription with each shakal glyph hand-encoded as a bit
+  // pattern, matched 1:1 against all 16 FIGURES -- see
+  // TROUBLESOME_YEARS_TABLE in judgement-reference.ts. itemNo therefore
+  // runs 1-42 with only 16 and 26 absent.
+  const REMOVED_ITEM_NOS = [16, 26];
 
-  it("has exactly 39 rules, itemNo 1-42 minus {3,16,26}, unique ids", () => {
-    expect(JUDGEMENT_RULES).toHaveLength(39);
+  it("has exactly 40 rules, itemNo 1-42 minus {16,26}, unique ids", () => {
+    expect(JUDGEMENT_RULES).toHaveLength(40);
     const itemNos = JUDGEMENT_RULES.map((r) => r.itemNo).sort((a, b) => a - b);
     const expected = Array.from({ length: 42 }, (_, i) => i + 1).filter((n) => !REMOVED_ITEM_NOS.includes(n));
     expect(itemNos).toEqual(expected);
-    expect(new Set(JUDGEMENT_RULES.map((r) => r.id)).size).toBe(39);
+    expect(new Set(JUDGEMENT_RULES.map((r) => r.id)).size).toBe(40);
   });
 
   it("removed items are genuinely absent, not silently present with a stub", () => {
-    for (const id of ["R03", "R16", "R26"]) {
+    for (const id of ["R16", "R26"]) {
       expect(JUDGEMENT_RULES.find((r) => r.id === id)).toBeUndefined();
     }
+  });
+
+  it("R03 (troublesome years) covers all 16 figures exactly once across its table", () => {
+    const ids = FIGURES.map((f) => f.id).sort((a, b) => a - b);
+    const tableIds = Object.keys(TROUBLESOME_YEARS_TABLE)
+      .map(Number)
+      .sort((a, b) => a - b);
+    expect(tableIds).toEqual(ids);
   });
 
   it("every rule with compute() runs without throwing across several sample charts", () => {
