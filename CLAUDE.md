@@ -528,6 +528,14 @@ Type. House number was already shown (`House {questionHouse} --
 locale-dependent (not necessarily dd/mm/yyyy for every browser) and
 included a time-of-day that wasn't asked for.
 
+Verified end-to-end, not just by reading the code: seeded 15 fake
+entries directly into a real browser's `localStorage` via Playwright
+(simulating history saved under the old 50-cap), loaded
+`new-prediction/page.tsx`, and confirmed both the UI ("Show recent
+predictions (10)") and `localStorage` itself (re-read after load) held
+exactly 10 -- the other 5 were genuinely deleted, not just hidden from
+the list.
+
 **Judgement Library category jump-nav (`JudgementResults.tsx`)** -- a
 row of pill links at the top of the 40-rule list (one per category that
 actually has rules), each an anchor (`#judgement-cat-<key>`) to that
