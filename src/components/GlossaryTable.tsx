@@ -1,17 +1,15 @@
 import { GLOSSARY } from "@/lib/data/glossary";
 import { GLOSSARY_TRANSLITERATION } from "@/lib/data/glossary-transliteration";
 
-export default function GlossaryPage() {
+/** Read-only table of GLOSSARY terms, each with a bracketed Roman-script transliteration. */
+export default function GlossaryTable() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">Glossary</h1>
-        <p className="mt-1 max-w-prose text-sm text-black/60 dark:text-white/60">
-          Terminology and technical terms used throughout the app, with their English meanings.
-          Roman-script transliterations in brackets are a hand-added reading aid, not part of the
-          original source terms.
-        </p>
-      </div>
+      <p className="max-w-prose text-sm text-black/60 dark:text-white/60">
+        Terminology and technical terms used throughout the app, with their English meanings.
+        Roman-script transliterations in brackets are a hand-added reading aid, not part of the
+        original source terms.
+      </p>
 
       <div className="overflow-hidden rounded border border-black/10 dark:border-white/10">
         <table className="w-full text-sm">

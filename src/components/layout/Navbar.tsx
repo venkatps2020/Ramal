@@ -30,9 +30,6 @@ export default function Navbar() {
           <Link href="/reference" className="hover:text-[#3b4a6b] dark:hover:text-[#93a6d8]">
             Reference
           </Link>
-          <Link href="/glossary" className="hover:text-[#3b4a6b] dark:hover:text-[#93a6d8]">
-            Glossary
-          </Link>
           <button
             type="button"
             onClick={toggleDark}

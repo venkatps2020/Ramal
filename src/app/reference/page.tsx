@@ -4,8 +4,9 @@ import { useState } from "react";
 import StihirKundaliTable from "@/components/StihirKundaliTable";
 import HouseExplorer from "@/components/HouseExplorer";
 import TimingsChart from "@/components/TimingsChart";
+import GlossaryTable from "@/components/GlossaryTable";
 
-const TABS = ["Stihir Kundali", "Houses", "Timings"] as const;
+const TABS = ["Stihir Kundali", "Houses", "Timings", "Glossary"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function ReferencePage() {
@@ -16,8 +17,8 @@ export default function ReferencePage() {
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Reference</h1>
         <p className="mt-1 max-w-prose text-sm text-black/60 dark:text-white/60">
-          Static reference material: the 16 canonical figures, the 12 houses, and the Timings
-          lookup tables.
+          Static reference material: the 16 canonical figures, the 12 houses, the Timings
+          lookup tables, and the glossary.
         </p>
       </div>
 
@@ -41,6 +42,7 @@ export default function ReferencePage() {
       {tab === "Stihir Kundali" && <StihirKundaliTable />}
       {tab === "Houses" && <HouseExplorer />}
       {tab === "Timings" && <TimingsChart />}
+      {tab === "Glossary" && <GlossaryTable />}
     </div>
   );
 }

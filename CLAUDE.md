@@ -20,10 +20,8 @@ src/
                                  the only place the Judgement Library is reachable, see below.
                                  Also: natural-language question search, recent-predictions
                                  summary at the bottom -- see "New Prediction page additions" below.
-    reference/page.tsx        -- Reference: three-tab static reference material (Stihir
-                                 Kundali, Houses, Timings) -- see "Reference tab" below
-    glossary/page.tsx         -- Glossary: Hindi-term -> English translations, with a
-                                 hand-added Roman transliteration -- see below
+    reference/page.tsx        -- Reference: four-tab static reference material (Stihir
+                                 Kundali, Houses, Timings, Glossary) -- see "Reference tab" below
     layout.tsx                -- Root layout, dark mode init
   components/
     layout/Navbar.tsx
@@ -50,6 +48,8 @@ src/
                                    includes an unverified "English gloss" column (see
                                    below); the "Stihir Kundali" tab of reference/page.tsx
                                    -- no longer rendered on New Prediction, see below
+    GlossaryTable.tsx           -- Term -> Meaning table with Roman transliteration;
+                                   the "Glossary" tab of reference/page.tsx (see below)
   lib/
     house-search.ts            -- Keyword ranking across all "12 Houses" sheet fields
                                    (searchHouses, single-term) plus a natural-language
@@ -555,11 +555,13 @@ Prediction page additions" above for how it differs from `searchHouses()`.
 
 ## Reference tab (`reference/page.tsx`)
 
-A single page with three internal tabs (`useState`, not separate routes)
--- **Stihir Kundali**, **Houses**, **Timings** -- consolidating this
-app's static reference material in one place. Per owner request
-(2026-08-26, "Create reference tab move - Stihir Kundali (reference)
-under it, second option can be houses and third timings chart"):
+A single page with four internal tabs (`useState`, not separate routes)
+-- **Stihir Kundali**, **Houses**, **Timings**, **Glossary** --
+consolidating this app's static reference material in one place. First
+three tabs per owner request (2026-08-26, "Create reference tab move -
+Stihir Kundali (reference) under it, second option can be houses and
+third timings chart"); Glossary added the same day as a follow-up ("can
+you get the glossary under Reference"):
 
 - **Stihir Kundali** tab renders `StihirKundaliTable` with no `chart`
   prop -- pure reference now, not cross-highlighted against a live
@@ -578,15 +580,12 @@ under it, second option can be houses and third timings chart"):
   16-row Place/Years/Months/Days table. This data existed and was
   fully used by the Timing engine already; it just had no reference UI
   of its own before this.
-
-## Glossary (`glossary/page.tsx`)
-
-A read-only table of `GLOSSARY` (`lib/data/glossary.ts`, 34
-Hindi/Marathi-term-to-English-translation pairs) that were extracted
-early in this project but had no UI consumer until the 2026-08-26
-enhancement list. Server component (no `"use client"`), since it's
-static data with no interaction. Each term also shows a bracketed
-Roman-script transliteration -- see "Glossary transliteration" above.
+- **Glossary** tab renders `GlossaryTable` (extracted from the former
+  standalone `glossary/page.tsx`, which is deleted -- `/glossary` now
+  404s, same treatment as Houses). A read-only table of `GLOSSARY`
+  (`lib/data/glossary.ts`, 34 Hindi/Marathi-term-to-English-translation
+  pairs), each with a bracketed Roman-script transliteration -- see
+  "Glossary transliteration" above.
 
 ## House data source (`lib/data/houses.ts`)
 
