@@ -31,14 +31,13 @@ export default function StihirKundaliTable({ chart }: { chart?: PrashnaChart | n
     <section className="mt-8">
       <h2 className="font-display text-lg font-semibold">Stihir Kundali (reference)</h2>
       <p className="mt-1 text-sm text-black/60 dark:text-white/60">
-        The 16 canonical figures, fixed and unchanging -- exactly as in the &quot;Stihir Kundali&quot; sheet of{" "}
-        <code>Ramal Calculation.xlsx</code>.
+        The 16 canonical figures, fixed and unchanging.
         {chart && " Rows highlighted below appear somewhere in the current 16-place Prashna Kundali."}
       </p>
       <p className="mt-1 text-xs text-black/45 dark:text-white/45">
-        &quot;English gloss&quot; below is <span className="italic">not</span> sourced from the workbook or PDF -- neither
-        translates the figure names themselves. It&apos;s a best-effort Arabic/Urdu etymology guess, shown lighter/italic
-        the less confident it is.
+        &quot;English gloss&quot; below is <span className="italic">not</span> a sourced translation -- neither the figure
+        names' original meanings, just a best-effort Arabic/Urdu etymology guess, shown lighter/italic the less
+        confident it is.
       </p>
       <button
         type="button"

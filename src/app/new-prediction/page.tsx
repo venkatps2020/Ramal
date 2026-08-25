@@ -277,17 +277,15 @@ export default function NewPredictionPage() {
               ) : result.timing.noPlaceMatch ? (
                 <>
                   <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                    No place in this chart matches the result figure, so the detailed Timing engine has no data here
-                    (Excel shows 0y 0m 0d in this case too -- it isn&apos;t a real zero, just no match).
+                    Result figure matches Sthir house {result.timing.sthirHouseId} (Timings Number{" "}
+                    {result.timing.timingNumber}) -- not available in this Prashna Kundali chart (matches no place
+                    among the current 16).
                   </p>
                   {result.quickDuration && result.quickDuration.unitLabel && (
                     <p className="mt-1 font-mono text-sm">
                       Quick Duration estimate: {result.quickDuration.count} {result.quickDuration.unitLabel}
                     </p>
                   )}
-                  <p className="mt-1 text-xs text-black/50 dark:text-white/50">
-                    Timings Number {result.timing.timingNumber} -- no places matched in this chart.
-                  </p>
                 </>
               ) : (
                 <>
@@ -295,9 +293,10 @@ export default function NewPredictionPage() {
                     {result.timing.totalYears}y {result.timing.totalMonths}m {result.timing.totalDays}d
                   </p>
                   <p className="mt-1 text-xs text-black/50 dark:text-white/50">
-                    Timings Number {result.timing.timingNumber} -- matched at place
+                    Result figure matches Sthir house {result.timing.sthirHouseId} (Timings Number{" "}
+                    {result.timing.timingNumber}) -- found in Prashna Kundali place
                     {result.timing.matches.length === 1 ? "" : "s"}{" "}
-                    {result.timing.matches.map((m) => m.place).join(", ") || "none"}.
+                    {result.timing.matches.map((m) => m.place).join(", ")}.
                   </p>
                 </>
               )}
@@ -311,11 +310,6 @@ export default function NewPredictionPage() {
               </h3>
               {result.quickDuration.sthirHouseId === null ? (
                 <p className="mt-1 text-sm text-black/60 dark:text-white/60">Unavailable -- no Sthir Kundali match.</p>
-              ) : result.quickDuration.unitLabel === "" ? (
-                <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-                  Not resolvable -- matched Sthir house {result.quickDuration.sthirHouseId} falls outside this
-                  workbook formula&apos;s reachable range (a known source gap, see calculation trace).
-                </p>
               ) : (
                 <p className="mt-1 font-mono text-sm">
                   {result.quickDuration.count} {result.quickDuration.unitLabel}

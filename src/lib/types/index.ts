@@ -110,6 +110,8 @@ export interface TraceStep {
 }
 
 export interface TimingResult {
+  /** The matched Sthir Kundali figure/house (1-16), or null in the near-impossible unavailable case. */
+  sthirHouseId: number | null;
   timingNumber: number;
   matches: Array<{ place: number; days: number; months: number; years: number }>;
   totalDays: number;

@@ -103,7 +103,7 @@ export function runPrediction(input: PredictionInput): PredictionResult {
         (questionType === judgement.resultType
           ? `${questionType === "AGAM" ? "Agam" : "Nirgam"} question, ${judgement.resultType.toLowerCase()}-type result -> YES.`
           : `${questionType === "AGAM" ? "Agam" : "Nirgam"} question, ${judgement.resultType?.toLowerCase() ?? "opposite"}-type ` +
-            `result -> NO (Prediction!row${questionType === "AGAM" ? "55" : "56"}).`),
+            `result -> NO.`),
     output: { status: judgement.status, resultType: judgement.resultType },
   });
 
@@ -117,7 +117,9 @@ export function runPrediction(input: PredictionInput): PredictionResult {
     detail:
       (timing.unavailable
         ? "Result figure did not match any Sthir Kundali figure -- timing unavailable."
-        : `Result figure matches Sthir house with Timings Number ${timing.timingNumber}. Found in ${timing.matches.length} place(s) of this chart: ${timing.matches.map((m) => m.place).join(", ") || "none"}.`) +
+        : timing.noPlaceMatch
+          ? `Result figure matches Sthir house ${timing.sthirHouseId} (Timings Number ${timing.timingNumber}) -- not available in this Prashna Kundali chart (matches no place among the current 16).`
+          : `Result figure matches Sthir house ${timing.sthirHouseId} (Timings Number ${timing.timingNumber}) -- found in Prashna Kundali place${timing.matches.length === 1 ? "" : "s"} ${timing.matches.map((m) => m.place).join(", ")}.`) +
       (timing.matches.length > 1 ? ` Matched more than one place -- shown separately per place: ${timingPerPlace}.` : ""),
     output: timing,
   });
@@ -137,9 +139,7 @@ export function runPrediction(input: PredictionInput): PredictionResult {
     detail:
       quickDuration.sthirHouseId === null
         ? "Result figure did not match any Sthir Kundali figure -- quick duration unavailable."
-        : quickDuration.unitLabel === ""
-          ? `Short Timing = ${(input.shortTiming ?? false) ? "Yes" : "No"}; matched Sthir house ${quickDuration.sthirHouseId} falls outside the workbook's reachable Day(s)/Week(s) range for Normal mode -- Prediction!F90 leaves this blank (a source formula gap, reproduced faithfully; see quick-duration.ts).`
-          : `Short Timing = ${(input.shortTiming ?? false) ? "Yes" : "No"} (${quickDuration.mode.toLowerCase()} mode); matched Sthir house ${quickDuration.sthirHouseId} -> ${quickDuration.count} ${quickDuration.unitLabel}.`,
+        : `Short Timing = ${(input.shortTiming ?? false) ? "Yes" : "No"} (${quickDuration.mode.toLowerCase()} mode); matched Sthir house ${quickDuration.sthirHouseId} -> ${quickDuration.count} ${quickDuration.unitLabel}.`,
     output: quickDuration,
   });
 

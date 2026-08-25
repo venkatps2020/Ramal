@@ -8,8 +8,7 @@ export default function Home() {
         <p className="mt-2 max-w-prose text-black/70 dark:text-white/70">
           Draw four figures, ask a question, and get a deterministic Yes/No answer with full
           working shown -- the sixteen-place Prashna Kundali, the Sthan Bali check, the
-          Agam/Nirgam judgement, and the timing calculation, all reproducing the source
-          Ramal Calculation.xlsx exactly.
+          Agam/Nirgam judgement, and the timing calculation.
         </p>
       </section>
 

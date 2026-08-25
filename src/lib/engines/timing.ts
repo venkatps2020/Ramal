@@ -31,12 +31,13 @@ import type { FigurePattern, PrashnaChart, TimingResult } from "@/lib/types";
 export function computeTiming(resultFigure: FigurePattern, chart: PrashnaChart): TimingResult {
   const sthirMatch = FIGURES.find((f) => patternsEqual(f.pattern, resultFigure));
   if (!sthirMatch) {
-    return { timingNumber: -1, matches: [], totalDays: 0, totalMonths: 0, totalYears: 0, unavailable: true, noPlaceMatch: false };
+    return { sthirHouseId: null, timingNumber: -1, matches: [], totalDays: 0, totalMonths: 0, totalYears: 0, unavailable: true, noPlaceMatch: false };
   }
 
   const block = TIMING_BLOCKS.find((b) => b.timingNumber === sthirMatch.timingNumber);
   if (!block) {
     return {
+      sthirHouseId: sthirMatch.id,
       timingNumber: sthirMatch.timingNumber,
       matches: [],
       totalDays: 0,
@@ -72,6 +73,7 @@ export function computeTiming(resultFigure: FigurePattern, chart: PrashnaChart):
   const totalYears = sumYears + extraYears;
 
   return {
+    sthirHouseId: sthirMatch.id,
     timingNumber: sthirMatch.timingNumber,
     matches,
     totalDays,

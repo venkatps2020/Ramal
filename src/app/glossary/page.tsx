@@ -1,4 +1,5 @@
 import { GLOSSARY } from "@/lib/data/glossary";
+import { GLOSSARY_TRANSLITERATION } from "@/lib/data/glossary-transliteration";
 
 export default function GlossaryPage() {
   return (
@@ -6,8 +7,9 @@ export default function GlossaryPage() {
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Glossary</h1>
         <p className="mt-1 max-w-prose text-sm text-black/60 dark:text-white/60">
-          Terminology from the &quot;Meaning&quot; sheet of <code>Ramal Calculation.xlsx</code> -- the
-          workbook&apos;s own English translations of its Hindi column headers and technical terms.
+          Terminology and technical terms used throughout the app, with their English meanings.
+          Roman-script transliterations in brackets are a hand-added reading aid, not part of the
+          original source terms.
         </p>
       </div>
 
@@ -22,7 +24,14 @@ export default function GlossaryPage() {
           <tbody>
             {GLOSSARY.map((entry, i) => (
               <tr key={i} className="border-b border-black/5 last:border-0 dark:border-white/5">
-                <td className="px-3 py-2 font-medium">{entry.term}</td>
+                <td className="px-3 py-2 font-medium">
+                  {entry.term}
+                  {GLOSSARY_TRANSLITERATION[i] && (
+                    <span className="ml-1 font-normal text-black/45 dark:text-white/45">
+                      ({GLOSSARY_TRANSLITERATION[i]})
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2 text-black/70 dark:text-white/70">{entry.meaning}</td>
               </tr>
             ))}

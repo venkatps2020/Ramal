@@ -76,6 +76,8 @@ src/
          category" buckets -- see "House Detail panel layout" below.
       figure-name-glosses.ts   -- Best-effort, explicitly-unverified English etymology
                                    for the 16 figure names -- see below.
+      glossary-transliteration.ts -- Hand-authored Roman-script transliteration of
+                                   glossary.ts's 34 Hindi/Marathi terms -- see below.
     history.ts                 -- localStorage prediction history (client-only)
     types/index.ts
 scripts/
@@ -246,6 +248,50 @@ places -> `noPlaceMatch: true`, and Quick Duration correctly resolves
 `{ count: 3, unitLabel: "Month(s)" }` once the `F90` fix above was in
 place (before the fix, this case would have shown a blank unit label
 too, doubly unhelpful).
+
+`TimingResult` also gained a top-level `sthirHouseId` (the matched Sthir
+figure/house 1-16, mirroring `QuickDurationResult`'s own field of the
+same name) per a follow-up owner request (2026-08-26): the "Timing
+lookup" trace step and the New Prediction UI used to only cite the
+*Timings Number* (`Prediction!C60`, a derived value -- e.g. Jamaat's
+Timings Number is 13, not 4), which isn't the same number as the actual
+matched Sthir house and was easy to misread as one. Both now state the
+Sthir house explicitly, alongside the Timings Number and the exact
+Prashna Kundali place numbers it was found at -- or, when
+`noPlaceMatch`, say plainly "not available in this Prashna Kundali
+chart" instead of listing zero places.
+
+**No "Excel"/"workbook"/cell-reference language in end-user-facing
+text.** Per owner request (2026-08-26, "need not reference excel in the
+app"): the home page, Glossary, House Explorer, Stihir Kundali table, and
+the calculation trace text (`predict.ts`'s trace `detail` strings, which
+render directly in the UI) no longer mention `Ramal Calculation.xlsx`,
+"workbook", or `Prediction!<cell>` citations -- those stay in code
+comments and this file, which are developer-facing, not user-facing.
+Two now-dead UI branches were removed in the same pass rather than just
+reworded: `quickDuration.unitLabel === ""` can only happen when
+`sthirHouseId` is also `null` (already caught by the branch above it)
+now that the `F90` fix means every house 1-16 resolves *some* unit --
+the "not resolvable" text and its "workbook formula" citation were
+unreachable dead code, not just Excel-flavored wording.
+
+## Glossary transliteration (`glossary-transliteration.ts`)
+
+`glossary.ts`'s 34 terms are Hindi/Marathi (Devanagari script only,
+generated from the source, do not hand-edit); the Meaning column already
+gives an English *translation*, but readers who can't read Devanagari
+had no way to even pronounce the term itself. Per owner request
+(2026-08-26, "in the glossary for term in hindi write in brackets in
+english"), `glossary-transliteration.ts` adds a Roman-script
+*transliteration* (not translation -- e.g. "स्थान क्र." -> "Sthan Kr.",
+still meaning "Place / Position Number" per the existing Meaning
+column) shown in brackets next to each term. Hand-authored, not sourced
+(the workbook has no romanization column) -- kept in its own file rather
+than added to `glossary.ts`, same discipline as `figure-name-glosses.ts`.
+Indexed positionally, same order as `GLOSSARY` -- if `glossary.ts` is
+ever regenerated with reordered/added rows, this file needs updating by
+hand to match, there's no defensive fallback here (only 34 short, static
+entries, low regeneration risk in practice).
 
 ## Judgement Library (40 rules, `Ramal-jyotish.pdf` "फलादेश"/"प्रगत रमल")
 
