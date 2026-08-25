@@ -80,6 +80,7 @@ export default function NewPredictionPage() {
         motherFigureIds: figureIds,
         questionHouse,
         questionType,
+        shortTiming,
         status: r.status,
         sthanBali: r.sthanBali,
         timingSummary: r.timing && !r.timing.unavailable

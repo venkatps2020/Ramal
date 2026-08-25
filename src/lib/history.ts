@@ -10,19 +10,27 @@ export interface HistoryEntry {
   motherFigureIds: [number, number, number, number];
   questionHouse: number;
   questionType: AgamNirgam;
+  shortTiming: boolean;
   status: AnswerStatus;
   sthanBali: boolean;
   timingSummary: string | null;
 }
 
 const KEY = "ramal.predictionHistory.v1";
-const MAX_ENTRIES = 50;
+const MAX_ENTRIES = 10;
 
+/** Loads history, trimming (and persisting the trim) if more than MAX_ENTRIES were saved under an older, higher cap. */
 export function loadHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : [];
+    const entries = raw ? (JSON.parse(raw) as HistoryEntry[]) : [];
+    if (entries.length > MAX_ENTRIES) {
+      const trimmed = entries.slice(0, MAX_ENTRIES);
+      window.localStorage.setItem(KEY, JSON.stringify(trimmed));
+      return trimmed;
+    }
+    return entries;
   } catch {
     return [];
   }

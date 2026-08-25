@@ -510,6 +510,24 @@ now lifts a `history` state (`loadHistory()` on mount, refreshed from
 it down, rather than `HistorySummary` reading `localStorage` itself, so
 it stays in sync without a second read on every render.
 
+**History cap lowered to 10, with active pruning (`history.ts`,
+`HistorySummary.tsx`, 2026-08-26 owner request "keep only last 10 and
+delete previous history")**: `MAX_ENTRIES` changed from 50 to 10, and
+`loadHistory()` now actively trims and re-persists to `localStorage` any
+time it finds more than 10 stored (not just a future-save-only cap) --
+so entries saved under the old 50-cap get pruned the next time the page
+loads, not just capped going forward. Also added per this request:
+`HistoryEntry` gained a `shortTiming: boolean` field (not previously
+recorded at all -- older stored entries won't have it, `HistorySummary`
+falls back to `entry.shortTiming ? "Yes" : "No"`, so a missing/undefined
+value reads as "No" rather than crashing), shown alongside Question
+Type. House number was already shown (`House {questionHouse} --
+{theme}`); the date now uses a fixed `dd/mm/yyyy` format
+(`formatDate()`, hand-rolled from `getDate()`/`getMonth()`/
+`getFullYear()`) instead of `toLocaleString()`, which was both
+locale-dependent (not necessarily dd/mm/yyyy for every browser) and
+included a time-of-day that wasn't asked for.
+
 **Judgement Library category jump-nav (`JudgementResults.tsx`)** -- a
 row of pill links at the top of the 40-rule list (one per category that
 actually has rules), each an anchor (`#judgement-cat-<key>`) to that
