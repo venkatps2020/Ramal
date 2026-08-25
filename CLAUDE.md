@@ -54,7 +54,7 @@ src/
       quick-duration.ts         -- Short Timing quick unit lookup (Prediction!B90:F91)
       predict.ts                -- Orchestrates the full pipeline + calculation trace
       judgement.ts              -- The 40-rule practical judgement library (PDF-sourced)
-      __tests__/                -- 97 Vitest tests: exhaustive combinations,
+      __tests__/                -- 100 Vitest tests: exhaustive combinations,
                                     a real cell-verified workbook benchmark, guards,
                                     the judgement rule registry
     data/
@@ -147,8 +147,9 @@ field. Run:
 npm run validate:oracle
 ```
 
-**Last run (2026-08-24): all 1,572,864 possible (draw, house, type)
-combinations -- the full 16^4 x 12 x 2 space, not a sample -- agree
+**Last run (2026-08-26, after the `F90` unit-label fix -- see "Quick
+Duration / Short Timing" below): all 1,572,864 possible (draw, house,
+type) combinations -- the full 16^4 x 12 x 2 space, not a sample -- agree
 exactly between the two independent implementations, including both
 Normal- and Short-mode Quick Duration. Zero mismatches.**
 `figures.ts` and `timings.ts` were separately cross-checked against a
@@ -186,27 +187,65 @@ formulas immediately. Worth remembering: a "zero hits" search result is
 only as good as the search terms, especially across a 140-row, 25-column
 sheet with mixed input/formula/label rows.
 
-Implemented in `engines/quick-duration.ts`, reproducing **two confirmed
-real bugs in the shipped workbook** faithfully (not silently corrected --
-Excel is this project's primary executable reference):
+Implemented in `engines/quick-duration.ts`. Originally reproduced **two
+confirmed real bugs in the shipped workbook** faithfully (not silently
+corrected -- Excel is this project's primary executable reference); one
+has since been fixed:
 
-- **`F90` (Normal mode unit label) is off by two rows.** It searches the
-  matched Sthir house number against `D93`, `D94`, `D95`, `D96` in
-  sequence -- but `D93` is blank and `D94` is a text label, not table
-  data. The real Day/Week/Month/Year table lives at `D95:D98`. Houses 1-4
-  and 5-8 happen to still resolve correctly (`D95`/`D96` are, respectively,
-  the 3rd and 4th checks in the broken cascade and coincide with the real
-  Day(s)/Week(s) rows), but houses 9-16 (Month(s)/Year(s)) are
-  unreachable -- every branch fails and `F90` falls through to `""`.
-- **`E91` (Short mode count) is off by one row.** It sums `D86:D89`
-  against `E86:E89` instead of mirroring `E90`'s correct `D85:D88`/
-  `E85:E88`, so it excludes the tez/first-symbol contribution (abjad
-  weight 1) entirely and pairs in a blank phantom row instead.
+- **`F90` (Normal mode unit label) was off by two rows -- FIXED
+  2026-08-26.** It used to search the matched Sthir house number against
+  `D93`, `D94`, `D95`, `D96` in sequence -- but `D93` is blank and `D94`
+  is a text label, not table data. The real Day/Week/Month/Year table
+  lives at `D95:D98`. Houses 1-4 and 5-8 happened to still resolve
+  correctly (`D95`/`D96` are, respectively, the 3rd and 4th checks in the
+  broken cascade and coincide with the real Day(s)/Week(s) rows), but
+  houses 9-16 (Month(s)/Year(s)) were unreachable -- every branch failed
+  and `F90` fell through to `""`. The owner corrected the `F90` formula
+  in the workbook itself to check `D95:D98` directly; this was
+  re-verified live against the corrected formula text (not just
+  re-derived independently) before `quick-duration.ts` and `oracle.py`
+  were both updated to match -- see "Timing: zero matching places in the
+  current chart" below for the investigation that surfaced this.
+- **`E91` (Short mode count) is still off by one row -- not fixed.** It
+  sums `D86:D89` against `E86:E89` instead of mirroring `E90`'s correct
+  `D85:D88`/`E85:E88`, so it excludes the tez/first-symbol contribution
+  (abjad weight 1) entirely and pairs in a blank phantom row instead. The
+  owner has not asked to correct this one; still reproduced faithfully.
 
-Both were verified against the workbook's own cached values before being
-implemented (house 8, cards 2/8/4/9: `E90` cached `2`, `F90` cached
-`"Week(s)"` -- matches exactly) and are covered by the exhaustive oracle
-above, not just the unit tests.
+Both bugs were verified against the workbook's own cached values or
+formula text before being implemented/changed, and both are covered by
+the exhaustive oracle above (`oracle.py`'s `compute_quick_duration` was
+updated in lockstep with the `F90` fix -- re-run confirmed all 1,572,864
+cases still agree).
+
+## Timing: zero matching places in the current chart (`noPlaceMatch`)
+
+The main Timing engine (`timing.ts`, `Prediction!C59:G76`) can
+legitimately find **zero** places in the current chart matching the
+result figure -- the result figure is guaranteed to match one of the 16
+canonical Sthir figures, but nothing guarantees that pattern also
+appears among *this specific* chart's own 16 constructed places. When
+that happens, `totalDays`/`totalMonths`/`totalYears` are all correctly
+`0` (verified live against Excel's actual formula, `Prediction!E60:G60 =
+SUM(E61:E76)+...` over `D61:G76` cells that are each
+`IFERROR(...,"")`-blanked when nothing matches -- `SUM` over blanks is
+`0`, so Excel shows the same 0y/0m/0d). This isn't a TS-vs-Excel
+divergence.
+
+It's still misleading on its own, though -- "0 years 0 months 0 days"
+reads as "happens immediately," not "this method found no data". Per
+owner request (2026-08-26, investigating why draw `2,13,14,5` / House 3 /
+Agam didn't show the expected "3 months"), `TimingResult` now carries a
+`noPlaceMatch: boolean` flag (true exactly when `matches.length === 0`
+but the figure did match a Sthir figure), and
+`new-prediction/page.tsx`'s Timing block uses it to show Quick Duration's
+estimate instead of a bare zero. That example is the regression anchor
+in `benchmark.test.ts`: draw `2,13,14,5`, House 3, Agam -> result figure
+matches Sthir house 9 (Bayaz) but appears nowhere in that chart's 16
+places -> `noPlaceMatch: true`, and Quick Duration correctly resolves
+`{ count: 3, unitLabel: "Month(s)" }` once the `F90` fix above was in
+place (before the fix, this case would have shown a blank unit label
+too, doubly unhelpful).
 
 ## Judgement Library (40 rules, `Ramal-jyotish.pdf` "फलादेश"/"प्रगत रमल")
 
@@ -354,8 +393,10 @@ ambiguity.
 
 **Recent-predictions summary (`HistorySummary.tsx`)** -- a collapsed
 "Show recent predictions (N)" toggle at the very bottom of
-`new-prediction/page.tsx`, listing the last 10 saved entries (figures,
-house, type, status, timing). This closes a real gap, not just an
+`new-prediction/page.tsx`, listing the last 10 saved entries (figures
+shown with their numeric IDs alongside names, e.g. "2 Kabjatul Dakhil" --
+added 2026-08-26 per owner request; house, type, status, timing). This
+closes a real gap, not just an
 enhancement: `saveHistoryEntry()` was still being called on every
 Calculate all along (recording to `localStorage`), but nothing displayed
 it after `RecentPredictions.tsx` was deleted earlier in this session
@@ -641,7 +682,7 @@ the project's implementation-plan artifact for the full rationale.
 npm run dev      # Dev server at http://localhost:3001
 npm run build    # Production build
 npm run start    # Serve production build (also port 3001)
-npm test         # Run all 97 Vitest tests
+npm test         # Run all 100 Vitest tests
 npm run test:watch
 npm run validate:oracle  # Independent Excel-formula cross-check, all 1,572,864 cases (~15s)
 ```

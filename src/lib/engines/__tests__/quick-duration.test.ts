@@ -24,13 +24,15 @@ describe("computeQuickDuration -- NORMAL mode (Prediction!D90:F90)", () => {
     }
   });
 
-  it("BUG (reproduced faithfully): houses 9-16 never resolve a unit label -- Prediction!F90 checks the wrong rows", () => {
+  it("resolves Month(s) for houses 9-12 and Year(s) for houses 13-16 (fixed 2026-08-26, Prediction!D95:D98)", () => {
+    // Prediction!F90 originally searched D93:D96 instead of D95:D98, so houses
+    // 9-16 always fell through to a blank unit label. The owner fixed F90 in
+    // the workbook itself to check D95:D98 directly; this mirrors that fix,
+    // re-verified against the corrected live formula text before changing.
     for (const fig of FIGURES) {
-      if (fig.id >= 9 && fig.id <= 16) {
-        const r = computeQuickDuration(fig.pattern, false);
-        expect(r.unitLabel).toBe("");
-        expect(r.sthirHouseId).toBe(fig.id); // house match itself still works
-      }
+      const r = computeQuickDuration(fig.pattern, false);
+      if (fig.id >= 9 && fig.id <= 12) expect(r.unitLabel).toBe("Month(s)");
+      if (fig.id >= 13 && fig.id <= 16) expect(r.unitLabel).toBe("Year(s)");
     }
   });
 

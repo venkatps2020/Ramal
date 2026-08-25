@@ -32,7 +32,7 @@ export default function HistorySummary({ entries }: { entries: HistoryEntry[] })
           {recent.map((entry) => {
             const house = HOUSE_INTERPRETATIONS.find((h) => h.id === entry.questionHouse);
             const figureNames = entry.motherFigureIds
-              .map((id) => FIGURES.find((f) => f.id === id)?.sourceName ?? "?")
+              .map((id) => `${id} ${FIGURES.find((f) => f.id === id)?.sourceName ?? "?"}`)
               .join(", ");
             return (
               <li key={entry.id} className="rounded border border-black/10 p-2 text-sm dark:border-white/10">

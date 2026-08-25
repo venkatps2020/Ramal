@@ -11,6 +11,18 @@
 //   4. For each such place, read Days/Months/Years from the selected
 //      Timings block and sum across all of them.
 //   5. Normalize: 30 days = 1 month, 12 months = 1 year (with carry).
+//
+// Step 3 can legitimately find ZERO matching places -- the result figure
+// is guaranteed to match one of the 16 canonical Sthir figures (step 1),
+// but nothing guarantees that exact pattern also appears among this
+// specific chart's own 16 constructed places. When that happens, matches
+// is empty and totalDays/Months/Years are all correctly 0 -- verified
+// against Excel's own formula (Prediction!E60:G60 = SUM over the
+// IFERROR-blanked D61:G76 rows, which sums to 0 exactly like this does).
+// It's real Excel behavior, not a bug -- but "0y 0m 0d" reads as "happens
+// immediately" when it actually means "this method found no data", so
+// the noPlaceMatch flag lets the UI show Quick Duration's always-
+// resolvable estimate instead of a bare zero (owner request, 2026-08-26).
 import { FIGURES } from "@/lib/data/figures";
 import { TIMING_BLOCKS } from "@/lib/data/timings";
 import { patternsEqual } from "@/lib/engines/figure";
@@ -19,7 +31,7 @@ import type { FigurePattern, PrashnaChart, TimingResult } from "@/lib/types";
 export function computeTiming(resultFigure: FigurePattern, chart: PrashnaChart): TimingResult {
   const sthirMatch = FIGURES.find((f) => patternsEqual(f.pattern, resultFigure));
   if (!sthirMatch) {
-    return { timingNumber: -1, matches: [], totalDays: 0, totalMonths: 0, totalYears: 0, unavailable: true };
+    return { timingNumber: -1, matches: [], totalDays: 0, totalMonths: 0, totalYears: 0, unavailable: true, noPlaceMatch: false };
   }
 
   const block = TIMING_BLOCKS.find((b) => b.timingNumber === sthirMatch.timingNumber);
@@ -31,6 +43,7 @@ export function computeTiming(resultFigure: FigurePattern, chart: PrashnaChart):
       totalMonths: 0,
       totalYears: 0,
       unavailable: true,
+      noPlaceMatch: false,
     };
   }
 
@@ -65,5 +78,6 @@ export function computeTiming(resultFigure: FigurePattern, chart: PrashnaChart):
     totalMonths,
     totalYears,
     unavailable: false,
+    noPlaceMatch: matches.length === 0,
   };
 }

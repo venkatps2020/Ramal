@@ -160,10 +160,13 @@ ABJAD_VALUE = [1, 2, 3, 4]  # tez, vayu, jal, prithvi
 
 def compute_quick_duration(result_pattern, short_timing):
     """Prediction!B90:F91 -- re-derived independently from the raw formulas
-    (D90/E90/F90 for Normal, D91/E91/F91 for Short Duration), reproducing
-    the two confirmed source bugs faithfully: F90 only ever resolves
-    Day(s)/Week(s) (houses 9-16 fall through to ""), and E91 excludes the
-    tez/first-symbol contribution entirely."""
+    (D90/E90/F90 for Normal, D91/E91/F91 for Short Duration). F90's unit
+    lookup was originally broken (only resolved Day(s)/Week(s), houses
+    9-16 fell through to "") but the owner fixed it in the workbook itself
+    (2026-08-26) to check D95:D98 directly -- re-verified against the
+    corrected live formula text before updating this to match. E91 (Short
+    count) still excludes the tez/first-symbol contribution entirely --
+    that bug was not corrected, still reproduced faithfully."""
     fig_id = PATTERN_TO_ID.get(result_pattern)
     if fig_id is None:
         return {"mode": "SHORT" if short_timing else "NORMAL", "sthirHouseId": None, "count": None, "unitLabel": ""}
@@ -174,8 +177,10 @@ def compute_quick_duration(result_pattern, short_timing):
             unit = "Day(s)"
         elif 5 <= fig_id <= 8:
             unit = "Week(s)"
+        elif 9 <= fig_id <= 12:
+            unit = "Month(s)"
         else:
-            unit = ""  # Bug 1: houses 9-16 unreachable, matches Prediction!F90 exactly
+            unit = "Year(s)"  # 13-16, per Prediction!D95:D98
         return {"mode": "NORMAL", "sthirHouseId": fig_id, "count": count, "unitLabel": unit}
 
     # Bug 2: SUMIF(D86:D89,...) skips tez (D85) entirely.

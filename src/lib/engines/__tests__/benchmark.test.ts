@@ -97,6 +97,37 @@ describe("runPrediction -- timing trace with multiple matched places", () => {
   });
 });
 
+describe("runPrediction -- Timing with zero matching places in this chart (draw 2,13,14,5; house 3; Agam)", () => {
+  // The result figure (Bayaz, Sthir house 9) matches nothing among this
+  // specific chart's own 16 constructed places -- a real, reachable case,
+  // not a synthetic one. Owner-flagged (2026-08-26): the detailed Timing
+  // engine correctly shows 0y 0m 0d here (verified live against Excel's
+  // own E60:G60 formula, which also sums to 0 over blanks -- not a bug),
+  // but that's misleading on its own, so noPlaceMatch lets the UI fall
+  // back to Quick Duration's always-resolvable estimate instead.
+  const result = runPrediction({
+    draw: { figureIds: [2, 13, 14, 5] },
+    questionHouse: 3,
+    questionType: "AGAM",
+  });
+
+  it("still answers YES with a real result figure", () => {
+    expect(result.status).toBe("YES");
+    expect(result.resultFigure).toEqual(["-", "-", "0", "-"]);
+  });
+
+  it("flags noPlaceMatch and reports a legitimate 0y 0m 0d, not an error", () => {
+    expect(result.timing?.unavailable).toBe(false);
+    expect(result.timing?.noPlaceMatch).toBe(true);
+    expect(result.timing?.matches).toEqual([]);
+    expect(result.timing).toMatchObject({ totalYears: 0, totalMonths: 0, totalDays: 0 });
+  });
+
+  it("Quick Duration still resolves a meaningful estimate: 3 Month(s)", () => {
+    expect(result.quickDuration).toEqual({ mode: "NORMAL", sthirHouseId: 9, count: 3, unitLabel: "Month(s)" });
+  });
+});
+
 describe("runPrediction -- guard short-circuits", () => {
   it("returns CANT_PREDICT_TODAY without a judgement when Place 1 is all-same", () => {
     const result = runPrediction({

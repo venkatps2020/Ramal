@@ -274,6 +274,21 @@ export default function NewPredictionPage() {
               </h3>
               {result.timing.unavailable ? (
                 <p className="mt-1 text-sm text-black/60 dark:text-white/60">Unavailable -- no Sthir Kundali match.</p>
+              ) : result.timing.noPlaceMatch ? (
+                <>
+                  <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+                    No place in this chart matches the result figure, so the detailed Timing engine has no data here
+                    (Excel shows 0y 0m 0d in this case too -- it isn&apos;t a real zero, just no match).
+                  </p>
+                  {result.quickDuration && result.quickDuration.unitLabel && (
+                    <p className="mt-1 font-mono text-sm">
+                      Quick Duration estimate: {result.quickDuration.count} {result.quickDuration.unitLabel}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-black/50 dark:text-white/50">
+                    Timings Number {result.timing.timingNumber} -- no places matched in this chart.
+                  </p>
+                </>
               ) : (
                 <>
                   <p className="mt-1 font-mono text-sm">

@@ -115,8 +115,19 @@ export interface TimingResult {
   totalDays: number;
   totalMonths: number;
   totalYears: number;
-  /** True when no matching pattern was found in the Sthir Kundali at all. */
+  /** True when no matching pattern was found in the Sthir Kundali at all (structurally near-impossible). */
   unavailable: boolean;
+  /**
+   * True when the result figure DID match a Sthir figure (unavailable is
+   * false) but that pattern doesn't appear anywhere among this specific
+   * chart's own 16 constructed places -- matches is empty, so
+   * totalDays/Months/Years are all legitimately 0, but that reads as "no
+   * wait at all" when it actually means "this method found no data".
+   * Excel's own formula (Prediction!E60:G60, SUM over blanks) shows 0/0/0
+   * here too -- this isn't a divergence from Excel, just a case worth
+   * flagging distinctly in the UI so it isn't shown as a real answer.
+   */
+  noPlaceMatch: boolean;
 }
 
 export type QuickDurationUnit = "Day(s)" | "Week(s)" | "Month(s)" | "Year(s)" | "Minutes" | "Hours" | "";
@@ -133,7 +144,7 @@ export interface QuickDurationResult {
   /** The matched Sthir house (1-16), or null if the result pattern matched nothing. */
   sthirHouseId: number | null;
   count: number | null;
-  /** "" reproduces a real source bug: NORMAL mode can never resolve Month(s)/Year(s) (houses 9-16). */
+  /** "" only when sthirHouseId is null (no pattern match at all -- structurally near-impossible). */
   unitLabel: QuickDurationUnit;
 }
 
