@@ -17,22 +17,35 @@ src/
     page.tsx                 -- Home page
     new-prediction/page.tsx  -- Draw figures, ask question, calculate, view trace,
                                  Judgement Library (same chart, collapsed by default) --
-                                 the only place the Judgement Library is reachable, see below
+                                 the only place the Judgement Library is reachable, see below.
+                                 Also: natural-language question search, recent-predictions
+                                 summary at the bottom -- see "New Prediction page additions" below.
+    houses/page.tsx           -- House Explorer: browse all 12 houses, reuses HouseDetailPanel
+    glossary/page.tsx         -- Glossary: workbook's own Hindi-term -> English translations
     layout.tsx                -- Root layout, dark mode init
   components/
     layout/Navbar.tsx
     FigureGlyph.tsx           -- Renders a 4-symbol pattern as bindu/rekha marks
     HouseCombobox.tsx          -- Searchable House picker (see "House search" below)
     HouseDetailPanel.tsx       -- Direct vs. Interpretive breakdown for one house,
-                                   organized "By category" (see below)
+                                   organized "By category" (see below); also used standalone
+                                   by houses/page.tsx
     JudgementResults.tsx       -- Category-grouped rendering of all 40 rules, used by
                                    new-prediction/page.tsx (kept as its own component even
-                                   with one caller -- see below for why)
+                                   with one caller -- see below for why); includes a
+                                   category jump-nav (see "New Prediction page additions")
+    QuestionSearch.tsx          -- "Describe your question" free-text house suggester
+                                   (see "New Prediction page additions" below)
+    HistorySummary.tsx          -- Collapsed last-10-predictions list
+                                   (see "New Prediction page additions" below)
     PrashnaKundaliChart.tsx    -- Traditional 8/4/4 Stihir Kundali layout (see below)
     StihirKundaliTable.tsx     -- Full 16-figure reference table, collapsed by default,
                                    includes an unverified "English gloss" column (see below)
   lib/
     house-search.ts            -- Keyword ranking across all "12 Houses" sheet fields
+                                   (searchHouses, single-term) plus a natural-language
+                                   multi-word variant (searchHousesByQuestion) -- see
+                                   "New Prediction page additions" below
     engines/
       figure.ts                -- addBit/addFigure (4-symbol XOR-style addition)
       kundali.ts                -- 16-place construction + validation guards
@@ -41,7 +54,7 @@ src/
       quick-duration.ts         -- Short Timing quick unit lookup (Prediction!B90:F91)
       predict.ts                -- Orchestrates the full pipeline + calculation trace
       judgement.ts              -- The 40-rule practical judgement library (PDF-sourced)
-      __tests__/                -- 92 Vitest tests: exhaustive combinations,
+      __tests__/                -- 97 Vitest tests: exhaustive combinations,
                                     a real cell-verified workbook benchmark, guards,
                                     the judgement rule registry
     data/
@@ -301,6 +314,64 @@ needed. On New Prediction, the Judgement Library section only appears
 *after* clicking Calculate (it's nested inside the `result &&` block),
 so reaching it now always requires filling in House/Type first even
 though the Judgement Library itself never reads those two fields.
+Confirmed acceptable by the owner (2026-08-26, "it is fine") -- don't
+"fix" this by hoisting the Judgement Library out of the `result &&`
+block without checking first, it was a deliberate trade-off, not an
+oversight.
+
+## New Prediction page additions (`QuestionSearch.tsx`, `HistorySummary.tsx`, `JudgementResults.tsx`)
+
+Three small features added together (2026-08-26, owner's enhancement list):
+
+**Natural-language question search (`QuestionSearch.tsx` +
+`searchHousesByQuestion` in `house-search.ts`)** -- a "Describe your
+question" free-text box above the House field, e.g. typing "will I get
+the job" surfaces House 10 (and House 4, which also mentions a
+government job -- see below) as suggestions instead of requiring you to
+already know which house covers your topic. This is a **new function**,
+not a reuse of the existing `searchHouses()` (which `HouseCombobox`
+still uses) -- `searchHouses()` does a single-term substring match, so a
+full sentence like "will I get the job" would zero-match it verbatim
+(the stored text is "Will I get a *good* job?", not a substring of the
+query or vice versa). `searchHousesByQuestion()` instead: tokenizes the
+query, drops a curated stopword list of filler words ("will", "i", "get",
+"the", etc. -- deliberately excludes "get" since nearly every house's
+`primaryQuestionUse` starts with "Will I get..."), then scores each
+house by summing every surviving token's best-field match (strong fields
++10, weak fields +5) rather than stopping at the first hit -- so a
+multi-word match outranks an incidental single-word one (verified in
+`house-search.test.ts`, e.g. "will I win the court case" scores House 6
+higher than a single-token match elsewhere because both "win" and
+"court" hit).
+
+This is pure keyword-ranking over already-sourced house text, not
+invented content -- but it's explicitly a heuristic, not a guaranteed
+single "correct" house: "will I get the job" ties House 4 and House 10
+at score 10 (both genuinely mention a job in their own
+`primaryQuestionUse`), so the UI shows up to 5 ranked suggestions with
+snippets to click, rather than silently auto-picking one and hiding the
+ambiguity.
+
+**Recent-predictions summary (`HistorySummary.tsx`)** -- a collapsed
+"Show recent predictions (N)" toggle at the very bottom of
+`new-prediction/page.tsx`, listing the last 10 saved entries (figures,
+house, type, status, timing). This closes a real gap, not just an
+enhancement: `saveHistoryEntry()` was still being called on every
+Calculate all along (recording to `localStorage`), but nothing displayed
+it after `RecentPredictions.tsx` was deleted earlier in this session
+(see the "Remove Recent predictions" history) -- history was being
+silently recorded with zero way to view it. `new-prediction/page.tsx`
+now lifts a `history` state (`loadHistory()` on mount, refreshed from
+`saveHistoryEntry()`'s own return value after each Calculate) and passes
+it down, rather than `HistorySummary` reading `localStorage` itself, so
+it stays in sync without a second read on every render.
+
+**Judgement Library category jump-nav (`JudgementResults.tsx`)** -- a
+row of pill links at the top of the 40-rule list (one per category that
+actually has rules), each an anchor (`#judgement-cat-<key>`) to that
+category's section, since scrolling through all 13 categories/40 rules
+in one long list was the "smaller UX polish" flagged when this
+enhancement list was first discussed.
 
 ## Figure name English glosses (`StihirKundaliTable.tsx`)
 
@@ -349,6 +420,30 @@ source text (not invented examples): searching "thief" surfaces House 12
 (`Fear of thief`, now in `specialDerived`) at score 5; searching
 "possibilities" surfaces House 8's `specialDerived` ("Possibilities of
 love") at score 5, correctly tagged interpretive.
+
+`searchHousesByQuestion()` is a separate multi-word function in the same
+file, for the New Prediction page's natural-language search -- see "New
+Prediction page additions" above for how it differs from `searchHouses()`.
+
+## House Explorer (`houses/page.tsx`)
+
+A browsable index of all 12 houses (2026-08-26 enhancement list), added
+because the only previous way to see a house's detail was picking it as
+the *question* house on New Prediction -- there was no way to just
+browse house meanings independent of building a prediction. Pure
+composition, no new data or logic: a grid of the 12 houses (id, figure
+name, theme) that, on click, renders the exact same `HouseDetailPanel`
+already used on New Prediction, so the two stay in sync automatically --
+any future change to how house detail renders (categories, tone badges,
+etc.) applies to both without extra work.
+
+## Glossary (`glossary/page.tsx`)
+
+A read-only table of `GLOSSARY` (`lib/data/glossary.ts`, from the
+workbook's own "Meaning" sheet) -- 34 Hindi-term-to-English-translation
+pairs that were extracted early in this project but never had a UI
+consumer until now (2026-08-26 enhancement list). Server component (no
+`"use client"`), since it's static data with no interaction.
 
 ## House data source (`lib/data/houses.ts`)
 
@@ -532,8 +627,9 @@ the project's implementation-plan artifact for the full rationale.
 
 - Excel import/versioning/admin approval workflow (spec §18) -- v1 ships
   the workbook's data pre-extracted as static TS, not a runtime importer.
-- Question search / natural-language classification (spec §12-13).
-- House Explorer, Figure reference pages, Glossary UI.
+- Figure reference pages (a dedicated detail page per figure, the
+  figure-side counterpart to House Explorer -- House Explorer and
+  Glossary UI shipped 2026-08-26, see above; this one hasn't).
 - Electron packaging (Nameology has this; not yet wired up here).
 - PDF export, CSV export.
 - Judgement Library item 42's diagram-level fixture (currently verified via
@@ -545,7 +641,7 @@ the project's implementation-plan artifact for the full rationale.
 npm run dev      # Dev server at http://localhost:3001
 npm run build    # Production build
 npm run start    # Serve production build (also port 3001)
-npm test         # Run all 92 Vitest tests
+npm test         # Run all 97 Vitest tests
 npm run test:watch
 npm run validate:oracle  # Independent Excel-formula cross-check, all 1,572,864 cases (~15s)
 ```

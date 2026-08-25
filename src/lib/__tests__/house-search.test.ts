@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { searchHouses } from "@/lib/house-search";
+import { searchHouses, searchHousesByQuestion } from "@/lib/house-search";
 import { HOUSE_INTERPRETATIONS } from "@/lib/data/houses";
 
 describe("searchHouses", () => {
@@ -52,5 +52,39 @@ describe("searchHouses", () => {
 
   it("returns no results for a nonsense query", () => {
     expect(searchHouses("zzzznonexistentqueryxyz")).toHaveLength(0);
+  });
+});
+
+describe("searchHousesByQuestion", () => {
+  it("returns nothing for an empty or all-stopword query", () => {
+    expect(searchHousesByQuestion("")).toHaveLength(0);
+    expect(searchHousesByQuestion("will I get the")).toHaveLength(0);
+  });
+
+  it("surfaces House 7 for a marriage question", () => {
+    const results = searchHousesByQuestion("will I get married");
+    expect(results[0].house.id).toBe(7);
+  });
+
+  it("surfaces House 5 as the top match for a children question", () => {
+    const results = searchHousesByQuestion("will I have children");
+    expect(results[0].house.id).toBe(5);
+  });
+
+  it("sums scores across multiple matched tokens, ranking above a single-token match", () => {
+    const results = searchHousesByQuestion("will I win the court case");
+    const house6 = results.find((r) => r.house.id === 6);
+    expect(house6).toBeDefined();
+    expect(house6!.matchedTokens.length).toBeGreaterThan(1);
+    expect(house6!.score).toBe(results[0].score);
+    expect(results[0].house.id).toBe(6);
+  });
+
+  it("results are sorted by score descending, house id ascending on ties", () => {
+    const results = searchHousesByQuestion("will I get the job");
+    const scores = results.map((r) => r.score);
+    expect(scores).toEqual([...scores].sort((a, b) => b - a));
+    // House 4 and House 10 both mention "job" -- both should surface.
+    expect(results.map((r) => r.house.id)).toEqual(expect.arrayContaining([4, 10]));
   });
 });

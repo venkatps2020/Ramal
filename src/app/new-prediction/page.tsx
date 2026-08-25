@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { runPrediction } from "@/lib/engines/predict";
 import { FIGURES } from "@/lib/data/figures";
-import { saveHistoryEntry } from "@/lib/history";
+import { loadHistory, saveHistoryEntry, type HistoryEntry } from "@/lib/history";
 import FigureGlyph from "@/components/FigureGlyph";
 import HouseCombobox from "@/components/HouseCombobox";
 import HouseDetailPanel from "@/components/HouseDetailPanel";
 import StihirKundaliTable from "@/components/StihirKundaliTable";
 import PrashnaKundaliChart from "@/components/PrashnaKundaliChart";
 import JudgementResults from "@/components/JudgementResults";
+import QuestionSearch from "@/components/QuestionSearch";
+import HistorySummary from "@/components/HistorySummary";
 import type { AgamNirgam, PredictionResult } from "@/lib/types";
 
 const STATUS_LABEL: Record<PredictionResult["status"], string> = {
@@ -44,6 +46,11 @@ export default function NewPredictionPage() {
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [traceOpen, setTraceOpen] = useState(false);
   const [judgementOpen, setJudgementOpen] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
 
   function setFigureAt(index: number, id: number) {
     setFigureIds((prev) => {
@@ -61,18 +68,20 @@ export default function NewPredictionPage() {
     const r = runPrediction({ draw: { figureIds }, questionHouse, questionType, shortTiming });
     setResult(r);
     setTraceOpen(false);
-    saveHistoryEntry({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      createdAt: new Date().toISOString(),
-      motherFigureIds: figureIds,
-      questionHouse,
-      questionType,
-      status: r.status,
-      sthanBali: r.sthanBali,
-      timingSummary: r.timing && !r.timing.unavailable
-        ? `${r.timing.totalYears}y ${r.timing.totalMonths}m ${r.timing.totalDays}d`
-        : null,
-    });
+    setHistory(
+      saveHistoryEntry({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        createdAt: new Date().toISOString(),
+        motherFigureIds: figureIds,
+        questionHouse,
+        questionType,
+        status: r.status,
+        sthanBali: r.sthanBali,
+        timingSummary: r.timing && !r.timing.unavailable
+          ? `${r.timing.totalYears}y ${r.timing.totalMonths}m ${r.timing.totalDays}d`
+          : null,
+      })
+    );
   }
 
   return (
@@ -125,6 +134,7 @@ export default function NewPredictionPage() {
 
       <section className="space-y-3">
         <h2 className="font-display text-lg font-semibold">Question</h2>
+        <QuestionSearch onSelect={setQuestionHouse} />
         <div className="flex flex-wrap gap-4">
           <div>
             <label className="block text-xs uppercase tracking-wide text-black/50 dark:text-white/50">House</label>
@@ -343,6 +353,8 @@ export default function NewPredictionPage() {
       )}
 
       <StihirKundaliTable chart={result?.chart ?? null} />
+
+      <HistorySummary entries={history} />
     </div>
   );
 }

@@ -41,15 +41,32 @@ const STATUS_PILL: Record<string, string> = {
   NEEDS_CONFIRMATION: "border-red-600/40 text-red-700 dark:text-red-400",
 };
 
+function categoryAnchor(cat: JudgementCategory): string {
+  return `judgement-cat-${cat}`;
+}
+
 /** All 40 Judgement Library rules, computed live against one chart and grouped by category. Shared between /judgement and the New Prediction trace. */
 export default function JudgementResults({ chart, ctx }: { chart: PrashnaChart; ctx: JudgementContext }) {
+  const presentCategories = CATEGORY_ORDER.filter((cat) => JUDGEMENT_RULES.some((r) => r.category === cat));
+
   return (
     <div className="space-y-6">
+      <nav className="flex flex-wrap gap-1.5 border-b border-black/10 pb-3 dark:border-white/10" aria-label="Jump to category">
+        {presentCategories.map((cat) => (
+          <a
+            key={cat}
+            href={`#${categoryAnchor(cat)}`}
+            className="rounded border border-black/15 px-2 py-1 text-[11px] uppercase tracking-wide hover:border-[#3b4a6b]/40 hover:text-[#3b4a6b] dark:border-white/15 dark:hover:border-[#93a6d8]/40 dark:hover:text-[#93a6d8]"
+          >
+            {CATEGORY_LABEL[cat]}
+          </a>
+        ))}
+      </nav>
       {CATEGORY_ORDER.map((cat) => {
         const rules = JUDGEMENT_RULES.filter((r) => r.category === cat).sort((a, b) => a.itemNo - b.itemNo);
         if (rules.length === 0) return null;
         return (
-          <section key={cat} className="space-y-3">
+          <section key={cat} id={categoryAnchor(cat)} className="scroll-mt-4 space-y-3">
             <h3 className="font-display text-base font-semibold">{CATEGORY_LABEL[cat]}</h3>
             <div className="space-y-2">
               {rules.map((rule) => {
