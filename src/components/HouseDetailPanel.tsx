@@ -137,7 +137,7 @@ export default function HouseDetailPanel({ houseId }: { houseId: number }) {
       {categoryItems.length > 0 && (
         <div className="p-4">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-black/55 dark:text-white/55">By category</h4>
-          <div className="mt-2 grid gap-4 sm:grid-cols-2">
+          <div className="mt-2 grid gap-4 sm:grid-cols-3">
             {categoryItems.map(([label, direct, interpretive]) => (
               <div key={label}>
                 <h5 className="text-[11px] font-semibold uppercase tracking-wide text-black/45 dark:text-white/45">{label}</h5>
