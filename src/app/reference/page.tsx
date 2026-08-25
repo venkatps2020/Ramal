@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import StihirKundaliTable from "@/components/StihirKundaliTable";
+import FigureExplorer from "@/components/FigureExplorer";
 import HouseExplorer from "@/components/HouseExplorer";
 import TimingsChart from "@/components/TimingsChart";
 import GlossaryTable from "@/components/GlossaryTable";
 
-const TABS = ["Stihir Kundali", "Houses", "Timings", "Glossary"] as const;
+const TABS = ["Stihir Kundali", "Figures", "Houses", "Timings", "Glossary"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function ReferencePage() {
@@ -40,6 +41,7 @@ export default function ReferencePage() {
       </div>
 
       {tab === "Stihir Kundali" && <StihirKundaliTable />}
+      {tab === "Figures" && <FigureExplorer />}
       {tab === "Houses" && <HouseExplorer />}
       {tab === "Timings" && <TimingsChart />}
       {tab === "Glossary" && <GlossaryTable />}

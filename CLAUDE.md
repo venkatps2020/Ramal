@@ -20,8 +20,9 @@ src/
                                  the only place the Judgement Library is reachable, see below.
                                  Also: natural-language question search, recent-predictions
                                  summary at the bottom -- see "New Prediction page additions" below.
-    reference/page.tsx        -- Reference: four-tab static reference material (Stihir
-                                 Kundali, Houses, Timings, Glossary) -- see "Reference tab" below
+    reference/page.tsx        -- Reference: five-tab static reference material (Stihir
+                                 Kundali, Figures, Houses, Timings, Glossary) -- see
+                                 "Reference tab" below
     layout.tsx                -- Root layout, dark mode init
   components/
     layout/Navbar.tsx
@@ -32,6 +33,11 @@ src/
                                    HouseExplorer
     HouseExplorer.tsx          -- Browsable grid of all 12 houses -> HouseDetailPanel;
                                    the "Houses" tab of reference/page.tsx (see below)
+    FigureDetailPanel.tsx       -- Full attribute breakdown for one of the 16 canonical
+                                   figures (lord, nature, auspiciousness, timing number,
+                                   etc.); also used by FigureExplorer
+    FigureExplorer.tsx          -- Browsable grid of all 16 figures -> FigureDetailPanel;
+                                   the "Figures" tab of reference/page.tsx (see below)
     TimingsChart.tsx           -- All 16 Timings blocks, each a collapsed-by-default
                                    16-place Days/Months/Years table; the "Timings" tab of
                                    reference/page.tsx (see below)
@@ -201,10 +207,11 @@ formulas immediately. Worth remembering: a "zero hits" search result is
 only as good as the search terms, especially across a 140-row, 25-column
 sheet with mixed input/formula/label rows.
 
-Implemented in `engines/quick-duration.ts`. Originally reproduced **two
-confirmed real bugs in the shipped workbook** faithfully (not silently
-corrected -- Excel is this project's primary executable reference); one
-has since been fixed:
+Implemented in `engines/quick-duration.ts`. One real formula bug was
+found in the shipped workbook and has since been fixed there; a second
+thing that looked like a bug on first read turned out to be intended
+behavior, confirmed directly with the owner rather than assumed either
+way:
 
 - **`F90` (Normal mode unit label) was off by two rows -- FIXED
   2026-08-26.** It used to search the matched Sthir house number against
@@ -220,14 +227,23 @@ has since been fixed:
   re-derived independently) before `quick-duration.ts` and `oracle.py`
   were both updated to match -- see "Timing: zero matching places in the
   current chart" below for the investigation that surfaced this.
-- **`E91` (Short mode count) is still off by one row -- not fixed.** It
-  sums `D86:D89` against `E86:E89` instead of mirroring `E90`'s correct
-  `D85:D88`/`E85:E88`, so it excludes the tez/first-symbol contribution
-  (abjad weight 1) entirely and pairs in a blank phantom row instead. The
-  owner has not asked to correct this one; still reproduced faithfully.
+- **`E91` (Short mode count) sums `D86:D89`/`E86:E89`, one row shifted
+  from `E90`'s `D85:D88`/`E85:E88` pairing, excluding the tez/first-
+  symbol contribution (abjad weight 1) entirely -- CONFIRMED CORRECT,
+  NOT A BUG (owner, 2026-08-26, "E91 is correct in excel").** Originally
+  logged as a suspected off-by-one bug on 2026-08-25; re-checked directly
+  against both the live open workbook and the saved file on 2026-08-26
+  (not assumed) -- `D89`/`E89` are genuinely blank on both, and the
+  formula text is unchanged from the original read, so nothing was
+  silently fixed and missed. The owner then confirmed the asymmetry
+  itself is intentional: Short mode is allowed to weight the four
+  symbols differently from Normal mode, not obligated to mirror `E90`'s
+  pairing. No code change was needed -- `quick-duration.ts` already
+  reproduced this exact formula; only the "bug" framing in code comments,
+  tests, and this file was corrected.
 
-Both bugs were verified against the workbook's own cached values or
-formula text before being implemented/changed, and both are covered by
+Both were verified against the workbook's own cached values or formula
+text before any conclusion was reached, and both paths are covered by
 the exhaustive oracle above (`oracle.py`'s `compute_quick_duration` was
 updated in lockstep with the `F90` fix -- re-run confirmed all 1,572,864
 cases still agree).
@@ -563,13 +579,15 @@ Prediction page additions" above for how it differs from `searchHouses()`.
 
 ## Reference tab (`reference/page.tsx`)
 
-A single page with four internal tabs (`useState`, not separate routes)
--- **Stihir Kundali**, **Houses**, **Timings**, **Glossary** --
-consolidating this app's static reference material in one place. First
-three tabs per owner request (2026-08-26, "Create reference tab move -
-Stihir Kundali (reference) under it, second option can be houses and
-third timings chart"); Glossary added the same day as a follow-up ("can
-you get the glossary under Reference"):
+A single page with five internal tabs (`useState`, not separate routes)
+-- **Stihir Kundali**, **Figures**, **Houses**, **Timings**, **Glossary**
+-- consolidating this app's static reference material in one place.
+First three (Stihir Kundali/Houses/Timings) per owner request
+(2026-08-26, "Create reference tab move - Stihir Kundali (reference)
+under it, second option can be houses and third timings chart"); Glossary
+added the same day as a follow-up ("can you get the glossary under
+Reference"); Figures added the same day too, from the "Not yet built"
+list's "Figure reference pages" item ("add the figure reference pages"):
 
 - **Stihir Kundali** tab renders `StihirKundaliTable` with no `chart`
   prop -- pure reference now, not cross-highlighted against a live
@@ -577,6 +595,17 @@ you get the glossary under Reference"):
   (highlighting which of the 16 figures appeared in the *current*
   chart); that highlighting capability is now unused, moved away
   entirely per the explicit "move" instruction, not kept as a duplicate.
+- **Figures** tab renders `FigureExplorer` -> `FigureDetailPanel`, the
+  figure-side counterpart to House Explorer: a grid of all 16 canonical
+  figures that, on click, shows one figure's full attributes (lord,
+  type, nature, auspiciousness, raashi, gender, direction, element,
+  Timings Number, meaning), plus the same unverified "English gloss"
+  already shown in `StihirKundaliTable` (confidence-styled, reused from
+  `figure-name-glosses.ts` rather than duplicated). Distinct from the
+  Stihir Kundali tab's dense one-row-per-figure table -- same underlying
+  data, different browsing shape (drill into one figure vs. scan all 16
+  at once), same relationship House Explorer already has to the Houses
+  data.
 - **Houses** tab renders `HouseExplorer` (extracted from the former
   standalone `houses/page.tsx`, which is deleted -- `/houses` now
   404s). Pure composition, no new data or logic: a grid of the 12
@@ -809,9 +838,6 @@ key first -- that part of the original deferral still stands.
 
 - Excel import/versioning/admin approval workflow (spec §18) -- v1 ships
   the workbook's data pre-extracted as static TS, not a runtime importer.
-- Figure reference pages (a dedicated detail page per figure, the
-  figure-side counterpart to House Explorer -- House Explorer and
-  Glossary UI shipped 2026-08-26, see above; this one hasn't).
 - Electron packaging (Nameology has this; not yet wired up here).
 - PDF export, CSV export.
 - Judgement Library item 42's diagram-level fixture (currently verified via

@@ -7,9 +7,9 @@
 // aggregation runs unconditionally regardless of B8 -- this is additive,
 // not a replacement.
 //
-// Two real formula bugs were originally found in the shipped workbook,
-// confirmed by reading the raw formulas and cross-checking their cached
-// values, not assumed:
+// One real formula bug was originally found in the shipped workbook (and
+// has since been fixed in the workbook), plus one thing that looked like
+// a bug on first read but is confirmed correct as-is:
 //
 //   1. F90 (NORMAL unit label) used to search the matched Sthir house
 //      number against D93, D94, D95, D96 in sequence -- but D93 is blank
@@ -28,14 +28,18 @@
 //      before this fix -- see the D95:D98 mapping below.
 //
 //   2. E91 (SHORT count) sums D86:D89 against E86:E89, one row shifted
-//      from E90's correct D85:D88/E85:E88 pairing (D85=D42=tez,
-//      D86=D43=vayu, D87=D44=jal, D88=D45=prithvi). E91 therefore excludes
-//      the tez/first-symbol contribution (abjad weight 1) entirely and
-//      pairs in a blank phantom D89/E89 row instead.
-//
-//      STILL REPRODUCED FAITHFULLY (not fixed) -- the owner has not asked
-//      to correct this one. Excel is this project's primary executable
-//      reference (master spec §2); bugs stay unless explicitly corrected.
+//      from E90's D85:D88/E85:E88 pairing (D85=D42=tez, D86=D43=vayu,
+//      D87=D44=jal, D88=D45=prithvi) -- so it excludes the tez/first-
+//      symbol contribution (abjad weight 1) and pairs in a blank
+//      D89/E89 row instead. This LOOKED like an off-by-one copy of E90
+//      at first read, but the owner confirmed (2026-08-26, "E91 is
+//      correct in excel") that excluding tez is the intended Short-mode
+//      calculation, not a mistake -- Short and Normal mode are allowed
+//      to weight the four symbols differently. Re-checked directly
+//      against both the live open workbook and the saved file before
+//      accepting this: D89/E89 are genuinely blank on both, and the
+//      formula text is unchanged from the original read. No code change
+//      needed here -- this engine already reproduces that exact formula.
 import { FIGURES } from "@/lib/data/figures";
 import { patternsEqual } from "@/lib/engines/figure";
 import type { FigurePattern, QuickDurationResult, QuickDurationUnit } from "@/lib/types";

@@ -165,8 +165,9 @@ def compute_quick_duration(result_pattern, short_timing):
     9-16 fell through to "") but the owner fixed it in the workbook itself
     (2026-08-26) to check D95:D98 directly -- re-verified against the
     corrected live formula text before updating this to match. E91 (Short
-    count) still excludes the tez/first-symbol contribution entirely --
-    that bug was not corrected, still reproduced faithfully."""
+    count) excludes the tez/first-symbol contribution entirely -- looked
+    like a bug on first read, but the owner confirmed (2026-08-26) this is
+    the intended Short-mode calculation, not a mistake to fix."""
     fig_id = PATTERN_TO_ID.get(result_pattern)
     if fig_id is None:
         return {"mode": "SHORT" if short_timing else "NORMAL", "sthirHouseId": None, "count": None, "unitLabel": ""}
@@ -183,7 +184,7 @@ def compute_quick_duration(result_pattern, short_timing):
             unit = "Year(s)"  # 13-16, per Prediction!D95:D98
         return {"mode": "NORMAL", "sthirHouseId": fig_id, "count": count, "unitLabel": unit}
 
-    # Bug 2: SUMIF(D86:D89,...) skips tez (D85) entirely.
+    # SUMIF(D86:D89,...) skips tez (D85) entirely -- intended, not a bug.
     count = sum(w for w, s in zip([2, 3, 4], result_pattern[1:]) if s == "0")
     unit = "Minutes" if 1 <= fig_id <= 7 else "Hours"
     return {"mode": "SHORT", "sthirHouseId": fig_id, "count": count, "unitLabel": unit}

@@ -55,9 +55,9 @@ describe("computeQuickDuration -- SHORT mode (Prediction!D91:F91)", () => {
     }
   });
 
-  it("BUG (reproduced faithfully): excludes the tez/first-symbol contribution -- Prediction!E91 sums the wrong rows", () => {
+  it("SHORT mode excludes the tez/first-symbol contribution by design -- confirmed correct, not a bug (owner, 2026-08-26)", () => {
     // Lahyan: 0,-,-,- -> tez is the ONLY revealed symbol. NORMAL mode counts
-    // it (count=1); SHORT mode's shifted SUMIF never sees tez at all (count=0).
+    // it (count=1); SHORT mode's D86:D89 range never sees tez at all (count=0) -- intended, per Prediction!E91.
     const lahyan = FIGURES.find((f) => f.sourceName === "Lahyan")!;
     expect(computeQuickDuration(lahyan.pattern, false).count).toBe(1);
     expect(computeQuickDuration(lahyan.pattern, true).count).toBe(0);
