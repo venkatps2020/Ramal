@@ -37,7 +37,7 @@ function randomFigureId(): number {
 
 export default function NewPredictionPage() {
   const [figureIds, setFigureIds] = useState<[number, number, number, number]>([1, 2, 3, 4]);
-  const [questionHouse, setQuestionHouse] = useState(7);
+  const [questionHouse, setQuestionHouse] = useState(1);
   const [questionType, setQuestionType] = useState<AgamNirgam>("AGAM");
   const [shortTiming, setShortTiming] = useState(false);
   const [gender, setGender] = useState<"FEMALE" | "MALE">("FEMALE");
