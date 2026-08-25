@@ -4,6 +4,7 @@ import { useState } from "react";
 import { HOUSE_INTERPRETATIONS } from "@/lib/data/houses";
 import { SPECIAL_DERIVED_CATEGORY, normalizeSpecialDerivedItem } from "@/lib/data/special-derived-categories";
 import { QUESTION_USE_CATEGORY } from "@/lib/data/question-use-categories";
+import { QUESTION_MASTER } from "@/lib/data/questions";
 import type { HouseInterpretation } from "@/lib/types";
 
 const CATEGORIES: Array<[string, keyof HouseInterpretation]> = [
@@ -27,11 +28,12 @@ function normalize(item: string): string {
   return item.toLowerCase().replace(/\s+/g, " ").trim().replace(/[.,]$/, "");
 }
 
-type Tone = "direct" | "interpretive";
+type Tone = "direct" | "interpretive" | "reference";
 
 const TONE_STYLES: Record<Tone, { badge: string; dot: string }> = {
   direct: { badge: "border-emerald-600/40 text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-600 dark:bg-emerald-400" },
   interpretive: { badge: "border-[#8a6a3c]/40 text-[#8a6a3c]", dot: "bg-[#8a6a3c]" },
+  reference: { badge: "border-black/25 text-black/55 dark:border-white/25 dark:text-white/55", dot: "bg-black/40 dark:bg-white/40" },
 };
 
 function Badge({ tone, children }: { tone: Tone; children: React.ReactNode }) {
@@ -125,6 +127,15 @@ export default function HouseDetailPanel({ houseId }: { houseId: number }) {
   const specialItems = dedupe(uncategorizedSpecialItems);
   const questionItems = dedupe(uncategorizedQuestionItems);
 
+  // Dhruvank Questions sheet -- kept independent of the shared dedupe pass
+  // above (a separate sheet, not part of the "12 Houses" data those items
+  // come from). Only the question text is shown; the sheet's own
+  // "Dhruvank" numeric code (e.g. "2,5,2") is undecoded -- no formula or
+  // legend anywhere in the source explains what it means -- so it's never
+  // surfaced here, per the same discipline that keeps unverified content
+  // out of the Judgement Library.
+  const dhruvankQuestions = QUESTION_MASTER.filter((q) => q.house === house.id).map((q) => q.text);
+
   return (
     <div className="mt-3 divide-y divide-black/10 rounded-lg border border-black/10 dark:divide-white/10 dark:border-white/10">
       <div className="p-4">
@@ -146,6 +157,23 @@ export default function HouseDetailPanel({ houseId }: { houseId: number }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {dhruvankQuestions.length > 0 && (
+        <div className="p-4">
+          <div className="flex items-center gap-2">
+            <Badge tone="reference">Reference</Badge>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-black/55 dark:text-white/55">
+              Dhruvank Questions
+            </h4>
+          </div>
+          <ItemList items={dhruvankQuestions} tone="reference" />
+          <p className="mt-2 text-[11px] italic text-black/40 dark:text-white/40">
+            From the source workbook&apos;s &quot;Dhruvank Questions&quot; sheet -- question wording only. The
+            sheet&apos;s own numeric code per question is undecoded (no formula or legend explains it), so it
+            isn&apos;t shown and these aren&apos;t computed answers.
+          </p>
         </div>
       )}
 

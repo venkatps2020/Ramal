@@ -75,7 +75,10 @@ src/
       -- all generated from Ramal Calculation.xlsx by scripts still in
          /private/tmp .../scratchpad/extract.py during this build; re-run
          extraction against a fresh workbook export by adapting that script
-         (not yet wired into `npm run extract-data`).
+         (not yet wired into `npm run extract-data`). questions.ts's
+         QUESTION_MASTER.text is shown on House Detail as of 2026-08-26 --
+         see "Dhruvank Questions on House Detail" below; its dhruvankRaw
+         field is still unused.
       judgement-reference.ts   -- Abjad order + life-expectancy/troublesome-years
                                    tables for the judgement library
                                    (authority: Ramal-jyotish.pdf, not the workbook)
@@ -754,14 +757,39 @@ assuming it's covered: reproduce it deliberately (dark-mode emulation or
 resolves that exact reproduction, don't just add `suppressHydrationWarning`
 somewhere and hope.
 
-## Deferred by owner decision
+## Dhruvank Questions on House Detail (`HouseDetailPanel.tsx`)
 
-**Dhruvank is out of scope.** `lib/data/questions.ts` imports the
-`Dhruvank Questions` sheet as inert reference data only (`dhruvankRaw`,
-never read by any engine code) -- required anyway by "all seven sheets
-imported and retained." No interpretation engine, enum, or feature flag
-exists for it. Do not build one without the owner's explicit go-ahead; see
-the project's implementation-plan artifact for the full rationale.
+**Partially unblocked 2026-08-26** -- previously fully out of scope (see
+below for what's still deferred). Owner asked to review the `Dhruvank
+Questions` sheet's house-wise questions and add them to House Detail;
+after confirming there's no way to compute real answers from them (see
+next paragraph), the owner asked for the question *text* to be shown as
+reference bullets, which is what's implemented now: a new "Dhruvank
+Questions" section (grey "Reference" badge, distinct from green
+Direct/amber Interpretive) lists `QUESTION_MASTER` entries filtered by
+`house === houseId`, text only.
+
+**The `dhruvankRaw` numeric code (e.g. "2,5,2") is still never shown or
+used anywhere.** Investigated directly in the source workbook before
+deciding this (not assumed): the `Dhruvank Questions` sheet itself has no
+formula or legend for what those three numbers mean, and the separate
+"Dhruwank" sheet -- despite the similar name -- turned out to be a
+generic tutorial walkthrough of the *same* main Prediction-sheet method
+already implemented in this app (house + house-1 addition, Agam/Nirgam,
+Sthan Bali, guards, a Day/Week/Month/Year table identical in structure to
+Quick Duration's), not an explanation of the Dhruvank Questions triplets
+specifically. So the numeric code stays undecoded and unused -- showing
+it, or computing anything from it, would mean presenting a guess as a
+real answer, which this project has consistently refused to do (see
+items 16/26, and this same investigation when the owner asked "is it
+possible to add these questions in judgement library" -- answer: not
+without knowing what the numbers reference). `lib/data/questions.ts`'s
+own header comment (do not hand-edit) still correctly describes
+`dhruvankRaw` as `NEEDS_CONFIRMATION`, never read by any engine code.
+
+Do not build a Dhruvank interpretation engine (Judgement Library rules,
+computed answers, etc.) without the owner supplying the missing decoding
+key first -- that part of the original deferral still stands.
 
 ## Not yet built (see project plan for the full phased roadmap)
 
