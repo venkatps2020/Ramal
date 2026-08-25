@@ -27,9 +27,6 @@ export default function Navbar() {
           <Link href="/new-prediction" className="hover:text-[#3b4a6b] dark:hover:text-[#93a6d8]">
             New Prediction
           </Link>
-          <Link href="/judgement" className="hover:text-[#3b4a6b] dark:hover:text-[#93a6d8]">
-            Judgement Library
-          </Link>
           <button
             type="button"
             onClick={toggleDark}

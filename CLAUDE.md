@@ -16,9 +16,8 @@ src/
   app/
     page.tsx                 -- Home page
     new-prediction/page.tsx  -- Draw figures, ask question, calculate, view trace,
-                                 Judgement Library (same chart, collapsed by default)
-    judgement/page.tsx        -- Judgement Library: 40 PDF rules computed live,
-                                  own four-figure picker (independent of New Prediction)
+                                 Judgement Library (same chart, collapsed by default) --
+                                 the only place the Judgement Library is reachable, see below
     layout.tsx                -- Root layout, dark mode init
   components/
     layout/Navbar.tsx
@@ -26,8 +25,9 @@ src/
     HouseCombobox.tsx          -- Searchable House picker (see "House search" below)
     HouseDetailPanel.tsx       -- Direct vs. Interpretive breakdown for one house,
                                    organized "By category" (see below)
-    JudgementResults.tsx       -- Shared category-grouped rendering of all 40 rules;
-                                   used by both new-prediction/page.tsx and judgement/page.tsx
+    JudgementResults.tsx       -- Category-grouped rendering of all 40 rules, used by
+                                   new-prediction/page.tsx (kept as its own component even
+                                   with one caller -- see below for why)
     PrashnaKundaliChart.tsx    -- Traditional 8/4/4 Stihir Kundali layout (see below)
     StihirKundaliTable.tsx     -- Full 16-figure reference table, collapsed by default,
                                    includes an unverified "English gloss" column (see below)
@@ -269,29 +269,38 @@ specifically to catch this class of transcription slip again.
 
 Per owner request (2026-08-25, "given that these are predictions based on
 4 chosen mother figures, can these not appear below the Calculation
-trace"): the same 40-rule Judgement Library now also renders on
-`new-prediction/page.tsx`, directly below "Show calculation trace",
-behind its own "Show Judgement Library" toggle (collapsed by default).
-It runs against `result.chart` -- the exact same 16-place chart the
-Yes/No prediction and timing were computed from, built from the same
-four drawn Mother Figures -- not a second independent draw.
-
-The category-grouped rendering (13 categories, one card per rule with
-question/answer/detail/`sourceStatus` pill) was previously inline in
-`judgement/page.tsx` only; it's now extracted into a shared
-`JudgementResults` component (`chart` + `ctx: JudgementContext` props) so
-both pages render identically instead of maintaining two copies. This
-also shrank `/judgement`'s own page bundle (9.48kB -> 1.41kB) since the
-category logic moved into a shared chunk.
+trace"): the 40-rule Judgement Library renders on `new-prediction/page.tsx`,
+directly below "Show calculation trace", behind its own "Show Judgement
+Library" toggle (collapsed by default). It runs against `result.chart` --
+the exact same 16-place chart the Yes/No prediction and timing were
+computed from, built from the same four drawn Mother Figures -- not a
+second independent draw.
 
 `new-prediction/page.tsx` also gained a **Gender** input (Female/Male
 toggle, defaults to Female), placed in the initial input form right after
 Short Timing per owner instruction -- it's only read by Judgement item 21
-("Will a second marriage be beneficial?"), same as on the standalone
-`/judgement` page; every other rule ignores it. The two pages' figure
-pickers are intentionally independent -- `/judgement` still has its own
-four-dropdown picker and "Draw random" button, unrelated to whatever's
-drawn on New Prediction.
+("Will a second marriage be beneficial?"); every other rule ignores it.
+
+**There used to be a separate `/judgement` page** with its own
+four-figure picker and "Draw random" button, reachable from a "Judgement
+Library" nav tab -- removed by owner decision (2026-08-25, "can we remove
+Judgement Library tab?") once the same results became reachable from New
+Prediction, since maintaining a second entry point to the same 40 rules
+was redundant. The category-grouped rendering (13 categories, one card
+per rule with question/answer/detail/`sourceStatus` pill) had already
+been extracted into a standalone `JudgementResults` component (`chart` +
+`ctx: JudgementContext` props) before the `/judgement` page was removed,
+so removing the page was just deleting `app/judgement/` and the Navbar
+link -- `JudgementResults` itself needed no changes and is kept as its
+own component rather than inlined back into `new-prediction/page.tsx`,
+in case a second entry point is wanted again later.
+
+**Trade-off worth knowing**: the standalone page let you see all 40
+answers from just four figures, with no house/question/Short Timing
+needed. On New Prediction, the Judgement Library section only appears
+*after* clicking Calculate (it's nested inside the `result &&` block),
+so reaching it now always requires filling in House/Type first even
+though the Judgement Library itself never reads those two fields.
 
 ## Figure name English glosses (`StihirKundaliTable.tsx`)
 
