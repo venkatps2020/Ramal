@@ -60,7 +60,6 @@ export default function JudgementResults({ chart, ctx }: { chart: PrashnaChart; 
                       <div>
                         <span className="mono text-xs text-black/40 dark:text-white/40">#{rule.itemNo}</span>{" "}
                         <span className="font-medium">{rule.questionEn}</span>
-                        <div className="text-xs text-black/45 dark:text-white/45">{rule.questionHi}</div>
                       </div>
                       <span className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wide ${STATUS_PILL[rule.sourceStatus]}`}>
                         {rule.sourceStatus.replace("_", " ")}

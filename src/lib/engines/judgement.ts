@@ -171,14 +171,14 @@ export function forecastUpcomingYear(
     if (isSabitStable(chart)) {
       const quality =
         i <= 2
-          ? "अती उत्तम / Excellent"
+          ? "Excellent"
           : i === 3
-            ? "उत्तम / Good"
+            ? "Good"
             : i === 4
-              ? "शुभ / Auspicious"
+              ? "Auspicious"
               : i === 5
-                ? "मध्यम / Medium"
-                : "अत्यंत कष्टकारक / Very Difficult";
+                ? "Medium"
+                : "Very Difficult";
       return { iterations: i, stabilized: true, quality, charts };
     }
     const nextFigures = [chart[13], chart[10], chart[11], chart[14]].map(sthirFigureFor);
@@ -374,7 +374,7 @@ export const JUDGEMENT_RULES: JudgementRule[] = [
     compute: (chart) => {
       const total = countBindu(allPlaces(chart));
       const r = total % 4;
-      const map: Record<number, string> = { 1: "वैर / Enmity", 2: "मित्रता / Friendship", 3: "कृत्रिम स्नेह / Artificial (transactional)", 0: "कपट / Deceit" };
+      const map: Record<number, string> = { 1: "Enmity", 2: "Friendship", 3: "Artificial (transactional)", 0: "Deceit" };
       return { answer: map[r], detail: `Total revealed (bindu) tattvas across all 16 places = ${total}, mod 4 = ${r}.` };
     },
   },
