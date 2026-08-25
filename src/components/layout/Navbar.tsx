@@ -27,8 +27,8 @@ export default function Navbar() {
           <Link href="/new-prediction" className="hover:text-[#3b4a6b] dark:hover:text-[#93a6d8]">
             New Prediction
           </Link>
-          <Link href="/houses" className="hover:text-[#3b4a6b] dark:hover:text-[#93a6d8]">
-            Houses
+          <Link href="/reference" className="hover:text-[#3b4a6b] dark:hover:text-[#93a6d8]">
+            Reference
           </Link>
           <Link href="/glossary" className="hover:text-[#3b4a6b] dark:hover:text-[#93a6d8]">
             Glossary

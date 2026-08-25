@@ -20,16 +20,23 @@ src/
                                  the only place the Judgement Library is reachable, see below.
                                  Also: natural-language question search, recent-predictions
                                  summary at the bottom -- see "New Prediction page additions" below.
-    houses/page.tsx           -- House Explorer: browse all 12 houses, reuses HouseDetailPanel
-    glossary/page.tsx         -- Glossary: workbook's own Hindi-term -> English translations
+    reference/page.tsx        -- Reference: three-tab static reference material (Stihir
+                                 Kundali, Houses, Timings) -- see "Reference tab" below
+    glossary/page.tsx         -- Glossary: Hindi-term -> English translations, with a
+                                 hand-added Roman transliteration -- see below
     layout.tsx                -- Root layout, dark mode init
   components/
     layout/Navbar.tsx
     FigureGlyph.tsx           -- Renders a 4-symbol pattern as bindu/rekha marks
     HouseCombobox.tsx          -- Searchable House picker (see "House search" below)
     HouseDetailPanel.tsx       -- Direct vs. Interpretive breakdown for one house,
-                                   organized "By category" (see below); also used standalone
-                                   by houses/page.tsx
+                                   organized "By category" (see below); also used by
+                                   HouseExplorer
+    HouseExplorer.tsx          -- Browsable grid of all 12 houses -> HouseDetailPanel;
+                                   the "Houses" tab of reference/page.tsx (see below)
+    TimingsChart.tsx           -- All 16 Timings blocks, each a collapsed-by-default
+                                   16-place Days/Months/Years table; the "Timings" tab of
+                                   reference/page.tsx (see below)
     JudgementResults.tsx       -- Category-grouped rendering of all 40 rules, used by
                                    new-prediction/page.tsx (kept as its own component even
                                    with one caller -- see below for why); includes a
@@ -40,7 +47,9 @@ src/
                                    (see "New Prediction page additions" below)
     PrashnaKundaliChart.tsx    -- Traditional 8/4/4 Stihir Kundali layout (see below)
     StihirKundaliTable.tsx     -- Full 16-figure reference table, collapsed by default,
-                                   includes an unverified "English gloss" column (see below)
+                                   includes an unverified "English gloss" column (see
+                                   below); the "Stihir Kundali" tab of reference/page.tsx
+                                   -- no longer rendered on New Prediction, see below
   lib/
     house-search.ts            -- Keyword ranking across all "12 Houses" sheet fields
                                    (searchHouses, single-term) plus a natural-language
@@ -512,25 +521,40 @@ love") at score 5, correctly tagged interpretive.
 file, for the New Prediction page's natural-language search -- see "New
 Prediction page additions" above for how it differs from `searchHouses()`.
 
-## House Explorer (`houses/page.tsx`)
+## Reference tab (`reference/page.tsx`)
 
-A browsable index of all 12 houses (2026-08-26 enhancement list), added
-because the only previous way to see a house's detail was picking it as
-the *question* house on New Prediction -- there was no way to just
-browse house meanings independent of building a prediction. Pure
-composition, no new data or logic: a grid of the 12 houses (id, figure
-name, theme) that, on click, renders the exact same `HouseDetailPanel`
-already used on New Prediction, so the two stay in sync automatically --
-any future change to how house detail renders (categories, tone badges,
-etc.) applies to both without extra work.
+A single page with three internal tabs (`useState`, not separate routes)
+-- **Stihir Kundali**, **Houses**, **Timings** -- consolidating this
+app's static reference material in one place. Per owner request
+(2026-08-26, "Create reference tab move - Stihir Kundali (reference)
+under it, second option can be houses and third timings chart"):
+
+- **Stihir Kundali** tab renders `StihirKundaliTable` with no `chart`
+  prop -- pure reference now, not cross-highlighted against a live
+  prediction. It used to sit at the bottom of `new-prediction/page.tsx`
+  (highlighting which of the 16 figures appeared in the *current*
+  chart); that highlighting capability is now unused, moved away
+  entirely per the explicit "move" instruction, not kept as a duplicate.
+- **Houses** tab renders `HouseExplorer` (extracted from the former
+  standalone `houses/page.tsx`, which is deleted -- `/houses` now
+  404s). Pure composition, no new data or logic: a grid of the 12
+  houses (id, figure name, theme) that, on click, renders the exact
+  same `HouseDetailPanel` already used on New Prediction, so the two
+  stay in sync automatically.
+- **Timings** tab renders the new `TimingsChart` -- all 16 Timings
+  blocks (`timings.ts`), each collapsed by default, expanding to a
+  16-row Place/Years/Months/Days table. This data existed and was
+  fully used by the Timing engine already; it just had no reference UI
+  of its own before this.
 
 ## Glossary (`glossary/page.tsx`)
 
-A read-only table of `GLOSSARY` (`lib/data/glossary.ts`, from the
-workbook's own "Meaning" sheet) -- 34 Hindi-term-to-English-translation
-pairs that were extracted early in this project but never had a UI
-consumer until now (2026-08-26 enhancement list). Server component (no
-`"use client"`), since it's static data with no interaction.
+A read-only table of `GLOSSARY` (`lib/data/glossary.ts`, 34
+Hindi/Marathi-term-to-English-translation pairs) that were extracted
+early in this project but had no UI consumer until the 2026-08-26
+enhancement list. Server component (no `"use client"`), since it's
+static data with no interaction. Each term also shows a bracketed
+Roman-script transliteration -- see "Glossary transliteration" above.
 
 ## House data source (`lib/data/houses.ts`)
 

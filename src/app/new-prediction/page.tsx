@@ -7,7 +7,6 @@ import { loadHistory, saveHistoryEntry, type HistoryEntry } from "@/lib/history"
 import FigureGlyph from "@/components/FigureGlyph";
 import HouseCombobox from "@/components/HouseCombobox";
 import HouseDetailPanel from "@/components/HouseDetailPanel";
-import StihirKundaliTable from "@/components/StihirKundaliTable";
 import PrashnaKundaliChart from "@/components/PrashnaKundaliChart";
 import JudgementResults from "@/components/JudgementResults";
 import QuestionSearch from "@/components/QuestionSearch";
@@ -360,8 +359,6 @@ export default function NewPredictionPage() {
           )}
         </section>
       )}
-
-      <StihirKundaliTable chart={result?.chart ?? null} />
 
       <HistorySummary entries={history} />
     </div>

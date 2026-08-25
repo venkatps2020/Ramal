@@ -4,18 +4,16 @@ import { useState } from "react";
 import { HOUSE_INTERPRETATIONS } from "@/lib/data/houses";
 import HouseDetailPanel from "@/components/HouseDetailPanel";
 
-export default function HouseExplorerPage() {
+/** Browsable grid of all 12 houses; click one for its full HouseDetailPanel breakdown. */
+export default function HouseExplorer() {
   const [selected, setSelected] = useState<number | null>(null);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">House Explorer</h1>
-        <p className="mt-1 max-w-prose text-sm text-black/60 dark:text-white/60">
-          All 12 houses of the Prashna Kundali. Pick one to see its full breakdown -- Direct source
-          fields (green) and Interpretive fields (amber) organized by category.
-        </p>
-      </div>
+      <p className="max-w-prose text-sm text-black/60 dark:text-white/60">
+        All 12 houses of the Prashna Kundali. Pick one to see its full breakdown -- Direct source
+        fields (green) and Interpretive fields (amber) organized by category.
+      </p>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
         {HOUSE_INTERPRETATIONS.map((house) => (
