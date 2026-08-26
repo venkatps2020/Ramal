@@ -69,7 +69,7 @@ src/
       quick-duration.ts         -- Short Timing quick unit lookup (Prediction!B90:F91)
       predict.ts                -- Orchestrates the full pipeline + calculation trace
       judgement.ts              -- The 42-rule practical judgement library (PDF-sourced)
-      __tests__/                -- 100 Vitest tests: exhaustive combinations,
+      __tests__/                -- 112 Vitest tests: exhaustive combinations,
                                     a real cell-verified workbook benchmark, guards,
                                     the judgement rule registry
     data/
@@ -104,6 +104,12 @@ scripts/
                                  the TS code) -- see "Excel regression oracle" below.
   oracle-diff.mts            -- Streams oracle.py's output into the real TS engine
                                  and diffs every field.
+  install-electron-app.sh    -- Rebuilds + repackages + installs/refreshes
+                                 /Applications/Ramal.app -- see "Electron packaging" below.
+electron/
+  main.js                     -- BrowserWindow + custom app:// protocol + CSP
+                                  (copied from Nameology's own shell, see below)
+  preload.js                  -- Exposes window.electronAPI = { isDesktop: true }
 ```
 
 ## Key implementation findings (source: actual workbook formulas, not just the docx spec)
@@ -1065,28 +1071,97 @@ logic that could silently drift apart. Extracted into
 used by both call sites now, with its own dedicated tests in
 `judgement.test.ts` (coverage/ordering/omits-empty/computes-correctly).
 
+## Electron packaging (`electron/`, standalone -- supersedes the Nameology-tab plan)
+
+**Owner decision reversal (2026-08-26):** the earlier plan ("Ramal
+becomes a tab inside Nameology's Electron app, not its own wrapper" --
+see git history on this section for that original note) was superseded
+the same day: the owner asked directly for a standalone `Ramal.app`
+runnable from `/Applications` *now*. `electron/main.js` and
+`electron/preload.js` are copied from Nameology's own proven shell
+(custom `app://` protocol via `protocol.handle`, CSP injected via
+`session.defaultSession.webRequest.onHeadersReceived` since there's no
+server to set headers, a locked-down `BrowserWindow` with
+`contextIsolation: true`/`nodeIntegration: false`) -- reused rather than
+reinvented, per the reasoning already recorded when this was first
+scoped. Ramal was already a clean fit: no API routes, no `next/image`,
+no dynamic route segments, fully client-side already (static data +
+`localStorage`, see top of this file).
+
+**Divergence from Nameology's config, deliberately:** Nameology's
+`next.config.ts` sets `output: 'export'` unconditionally. That breaks
+`next start` outright ("next start does not work with output: export"),
+which would have silently broken Ramal's own documented `npm run start`
+prod-preview workflow (see Dev commands below) the moment Electron
+support landed. `next.config.ts` instead gates `output: 'export'` behind
+an `ELECTRON_BUILD=true` env var, set only by the `electron:*` scripts --
+`npm run dev`/`build`/`start` are completely unaffected (verified: ran
+all three after adding the gate, all still worked).
+
+**Keeping `/Applications/Ramal.app` in sync with code changes** was its
+own explicit decision point (owner asked 2026-08-26, "whenever any
+change is done the app should be automatically updated"). Considered:
+(a) a re-sync script run after each change, (b) pointing the Electron
+window at a live `next dev` server instead of a bundled static snapshot,
+(c) a persistent background file-watcher that rebuilds on save. Owner
+chose (a) -- no background process, no dependency on a dev server
+staying up, at the cost of not being instant. `scripts/install-electron-app.sh`
+(run via `npm run electron:install`) rebuilds the static export,
+packages an **unpacked** app via `electron-builder --mac --dir` (skips
+DMG wrapping -- faster, and gives a raw `.app` to copy directly rather
+than one to extract from a mounted disk image), finds it under
+`dist-electron/` (`find ... -name "*.app"`, not a hardcoded
+`mac-arm64`/`mac` path, since that directory name is
+architecture-dependent), and replaces whatever's at
+`/Applications/<name>.app`. **Whoever changes Ramal's own app code
+(this includes future Claude sessions) should run `npm run
+electron:install` afterward** to keep the installed copy current --
+it's not automatic.
+
+`npm run electron:build`/`:win`/`:linux` (unchanged from Nameology's own
+convention) still produce real distributable installers (`.dmg`/NSIS/AppImage)
+under `dist-electron/` via the full (non-`--dir`) `electron-builder`
+run, for if this ever needs to be shared with someone else rather than
+just kept in sync on this machine.
+
+**No custom app icon** -- ships with Electron's default, same as
+Nameology (`electron-builder` logs "default Electron icon is used").
+Not code-signed either (no Apple Developer ID configured) -- fine for a
+personal, locally-installed app; would need a real certificate before
+ever distributing this to someone else's Mac (Gatekeeper would block an
+unsigned, downloaded copy, though a locally-built-and-copied one like
+this isn't quarantined and opens fine).
+
+Verified end-to-end, not just "the build didn't error": ran
+`npm run electron:install`, confirmed `/Applications/Ramal.app` exists,
+launched it with `open`, confirmed the actual Electron/helper processes
+are running (`ps aux`), and screenshotted the real window -- showing the
+full UI (chart, buttons, Judgement Library toggle) with a **live,
+JS-computed result** ("Can't Predict Today" for the default draw, which
+only appears after the `calculate()` click handler actually runs the
+engine -- proof the `app://` protocol, the bundled JS, and React are all
+genuinely working, not just serving a static HTML shell).
+
 ## Not yet built (see project plan for the full phased roadmap)
 
 - Excel import/versioning/admin approval workflow (spec §18) -- v1 ships
   the workbook's data pre-extracted as static TS, not a runtime importer.
-- Electron packaging -- **not a standalone Ramal wrapper.** Per owner
-  decision (2026-08-26), Ramal will eventually be integrated into
-  Nameology's existing Electron app (`Nameology/nameology-app`) as a
-  separate tab there, rather than getting its own `electron/` +
-  `electron-builder` setup. See Nameology's own
-  `next.config.ts` (`output: 'export'`), `electron/main.js` (custom
-  `app://` protocol + CSP injection), and `electron/preload.js` for how
-  that shell already works -- whoever does the integration should reuse
-  that shell rather than rebuilding it for Ramal.
+
 ## Dev commands
 
 ```bash
 npm run dev      # Dev server at http://localhost:3001
 npm run build    # Production build
 npm run start    # Serve production build (also port 3001)
-npm test         # Run all 100 Vitest tests
+npm test         # Run all 112 Vitest tests
 npm run test:watch
 npm run validate:oracle  # Independent Excel-formula cross-check, all 1,572,864 cases (~15s)
+
+npm run electron:install     # Rebuild + repackage + install/refresh /Applications/Ramal.app
+npm run electron:dev         # Run the packaged app without installing it (quick local check)
+npm run electron:build       # Produce a distributable .dmg under dist-electron/ (macOS)
+npm run electron:build:win   # Same, NSIS installer (Windows)
+npm run electron:build:linux # Same, AppImage (Linux)
 ```
 
 **Port is pinned to 3001, not Next's default 3000.** Nameology also

@@ -2,6 +2,7 @@
   "name": "ramal-app",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
@@ -10,7 +11,33 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "extract-data": "tsx scripts/extract-workbook.ts",
-    "validate:oracle": "python3 scripts/oracle.py exhaustive | npx tsx scripts/oracle-diff.mts"
+    "validate:oracle": "python3 scripts/oracle.py exhaustive | npx tsx scripts/oracle-diff.mts",
+    "electron:dev": "ELECTRON_BUILD=true next build && electron .",
+    "electron:build": "ELECTRON_BUILD=true next build && electron-builder --mac",
+    "electron:build:win": "ELECTRON_BUILD=true next build && electron-builder --win",
+    "electron:build:linux": "ELECTRON_BUILD=true next build && electron-builder --linux",
+    "electron:install": "bash scripts/install-electron-app.sh"
+  },
+  "build": {
+    "appId": "com.ramal.app",
+    "productName": "Ramal",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "out/**/*"
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "dependencies": {
     "next": "^15.5.4",
@@ -22,6 +49,8 @@
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "autoprefixer": "^10.4.20",
+    "electron": "^41.1.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9",
     "eslint-config-next": "^15.5.4",
     "playwright": "^1.62.1",
