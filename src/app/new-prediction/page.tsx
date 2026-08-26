@@ -12,6 +12,7 @@ import PrashnaKundaliChart from "@/components/PrashnaKundaliChart";
 import JudgementResults from "@/components/JudgementResults";
 import QuestionSearch from "@/components/QuestionSearch";
 import HistorySummary from "@/components/HistorySummary";
+import { buildPredictionCsv, downloadTextFile } from "@/lib/export";
 import type { AgamNirgam, FigurePattern, PredictionResult } from "@/lib/types";
 
 const STATUS_LABEL: Record<PredictionResult["status"], string> = {
@@ -69,6 +70,40 @@ export default function NewPredictionPage() {
     setFigureIds([randomFigureId(), randomFigureId(), randomFigureId(), randomFigureId()]);
   }
 
+  function exportCsv() {
+    if (!result) return;
+    const csv = buildPredictionCsv({
+      createdAt: new Date().toISOString(),
+      motherFigureIds: figureIds,
+      questionHouse,
+      questionType,
+      shortTiming,
+      gender,
+      result,
+    });
+    downloadTextFile(`ramal-prediction-${Date.now()}.csv`, "text/csv;charset=utf-8", csv);
+  }
+
+  function exportPdf() {
+    const wasDark = document.documentElement.classList.contains("dark");
+    const prevTrace = traceOpen;
+    const prevJudgement = judgementOpen;
+    if (wasDark) document.documentElement.classList.remove("dark");
+    setTraceOpen(true);
+    setJudgementOpen(true);
+
+    function restore() {
+      if (wasDark) document.documentElement.classList.add("dark");
+      setTraceOpen(prevTrace);
+      setJudgementOpen(prevJudgement);
+      window.removeEventListener("afterprint", restore);
+    }
+    // afterprint (not print()'s return, which some browsers don't block on) is
+    // the reliable signal that the print dialog has closed either way.
+    window.addEventListener("afterprint", restore);
+    setTimeout(() => window.print(), 100);
+  }
+
   function calculate() {
     const r = runPrediction({ draw: { figureIds }, questionHouse, questionType, shortTiming });
     setResult(r);
@@ -92,14 +127,14 @@ export default function NewPredictionPage() {
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="print:hidden">
         <h1 className="font-display text-2xl font-semibold tracking-tight">New Prediction</h1>
         <p className="mt-1 text-sm text-black/60 dark:text-white/60">
           Draw the four Mother Figures, choose the question&apos;s house and type, then calculate.
         </p>
       </div>
 
-      <section className="space-y-3">
+      <section className="space-y-3 print:hidden">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Four Mother Figures</h2>
           <button
@@ -138,7 +173,7 @@ export default function NewPredictionPage() {
         </p>
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-3 print:hidden">
         <h2 className="font-display text-lg font-semibold">Question</h2>
         <QuestionSearch onSelect={setQuestionHouse} />
         <div className="flex flex-wrap gap-4">
@@ -218,13 +253,40 @@ export default function NewPredictionPage() {
       <button
         type="button"
         onClick={calculate}
-        className="rounded bg-[#3b4a6b] px-5 py-2 text-sm font-medium text-white hover:bg-[#2f3c58]"
+        className="rounded bg-[#3b4a6b] px-5 py-2 text-sm font-medium text-white hover:bg-[#2f3c58] print:hidden"
       >
         Calculate
       </button>
 
       {result && (
         <section className="space-y-5 rounded border border-black/10 p-5 dark:border-white/10">
+          <div className="hidden print:block">
+            <h2 className="font-display text-lg font-semibold">Ramal Prediction Report</h2>
+            <p className="text-xs text-black/60">
+              Generated {new Date().toLocaleString()} -- Mother Figures{" "}
+              {figureIds.map((id) => `${id} ${figureById(id).sourceName}`).join(", ")} -- House {questionHouse} --{" "}
+              {questionType === "AGAM" ? "Agam" : "Nirgam"} -- Short Timing: {shortTiming ? "Yes" : "No"} -- Gender:{" "}
+              {gender === "FEMALE" ? "Female" : "Male"}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 print:hidden">
+            <button
+              type="button"
+              onClick={exportCsv}
+              className="rounded border border-black/15 px-3 py-1.5 text-xs uppercase tracking-wide hover:border-black/30 dark:border-white/15 dark:hover:border-white/30"
+            >
+              Download CSV
+            </button>
+            <button
+              type="button"
+              onClick={exportPdf}
+              className="rounded border border-black/15 px-3 py-1.5 text-xs uppercase tracking-wide hover:border-black/30 dark:border-white/15 dark:hover:border-white/30"
+            >
+              Export PDF
+            </button>
+          </div>
+
           {(!result.resultFigure || result.sthanBali) && (
             <div className="flex flex-wrap items-center gap-3">
               {!result.resultFigure && (
@@ -352,7 +414,7 @@ export default function NewPredictionPage() {
             <button
               type="button"
               onClick={() => setTraceOpen((v) => !v)}
-              className="text-xs font-medium uppercase tracking-wide text-[#3b4a6b] dark:text-[#93a6d8]"
+              className="text-xs font-medium uppercase tracking-wide text-[#3b4a6b] dark:text-[#93a6d8] print:hidden"
             >
               {traceOpen ? "Hide calculation trace" : "Show calculation trace"}
             </button>
@@ -373,11 +435,11 @@ export default function NewPredictionPage() {
               <button
                 type="button"
                 onClick={() => setJudgementOpen((v) => !v)}
-                className="text-xs font-medium uppercase tracking-wide text-[#3b4a6b] dark:text-[#93a6d8]"
+                className="text-xs font-medium uppercase tracking-wide text-[#3b4a6b] dark:text-[#93a6d8] print:hidden"
               >
                 {judgementOpen ? "Hide Judgement Library" : "Show Judgement Library"}
               </button>
-              <p className="mt-1 text-xs text-black/45 dark:text-white/45">
+              <p className="mt-1 text-xs text-black/45 dark:text-white/45 print:hidden">
                 40 practical judgement rules (loans, property, marriage, theft, and more) computed
                 live against these same four Mother Figures.
               </p>
@@ -391,7 +453,9 @@ export default function NewPredictionPage() {
         </section>
       )}
 
-      <HistorySummary entries={history} />
+      <div className="print:hidden">
+        <HistorySummary entries={history} />
+      </div>
     </div>
   );
 }

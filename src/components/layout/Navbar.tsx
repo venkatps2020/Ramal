@@ -18,7 +18,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="border-b border-black/10 dark:border-white/10">
+    <header className="border-b border-black/10 dark:border-white/10 print:hidden">
       <nav className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
         <Link href="/" className="font-display text-lg font-semibold tracking-tight">
           Ramal Astrology

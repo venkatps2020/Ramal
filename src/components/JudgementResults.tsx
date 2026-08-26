@@ -1,39 +1,13 @@
 "use client";
 
-import { JUDGEMENT_RULES, type JudgementCategory, type JudgementContext } from "@/lib/engines/judgement";
+import {
+  CATEGORY_LABEL,
+  CATEGORY_ORDER,
+  JUDGEMENT_RULES,
+  type JudgementCategory,
+  type JudgementContext,
+} from "@/lib/engines/judgement";
 import type { PrashnaChart } from "@/lib/types";
-
-const CATEGORY_LABEL: Record<JudgementCategory, string> = {
-  self: "Self / General",
-  money: "Money",
-  property: "Property",
-  siblings: "Siblings",
-  children: "Children",
-  disease_enemies: "Disease & Enemies",
-  marriage: "Marriage & Relationships",
-  death: "Death & Missing Persons",
-  fortune: "Fortune & Luck",
-  career: "Career & Work",
-  income_wishes: "Income & Wishes",
-  expenditure_legal: "Expenditure, Legal & Jail",
-  theft: "Theft",
-};
-
-const CATEGORY_ORDER: JudgementCategory[] = [
-  "self",
-  "money",
-  "property",
-  "siblings",
-  "children",
-  "marriage",
-  "disease_enemies",
-  "death",
-  "fortune",
-  "career",
-  "income_wishes",
-  "expenditure_legal",
-  "theft",
-];
 
 const STATUS_PILL: Record<string, string> = {
   SOURCE_DIRECT: "border-emerald-600/40 text-emerald-700 dark:text-emerald-400",
@@ -51,7 +25,10 @@ export default function JudgementResults({ chart, ctx }: { chart: PrashnaChart; 
 
   return (
     <div className="space-y-6">
-      <nav className="flex flex-wrap gap-1.5 border-b border-black/10 pb-3 dark:border-white/10" aria-label="Jump to category">
+      <nav
+        className="flex flex-wrap gap-1.5 border-b border-black/10 pb-3 print:hidden dark:border-white/10"
+        aria-label="Jump to category"
+      >
         {presentCategories.map((cat) => (
           <a
             key={cat}

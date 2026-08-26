@@ -273,6 +273,39 @@ function natureTestRule(opts: {
   };
 }
 
+/** Display order for categories; shared between JudgementResults (UI) and the CSV/PDF export. */
+export const CATEGORY_ORDER: JudgementCategory[] = [
+  "self",
+  "money",
+  "property",
+  "siblings",
+  "children",
+  "marriage",
+  "disease_enemies",
+  "death",
+  "fortune",
+  "career",
+  "income_wishes",
+  "expenditure_legal",
+  "theft",
+];
+
+export const CATEGORY_LABEL: Record<JudgementCategory, string> = {
+  self: "Self / General",
+  money: "Money",
+  property: "Property",
+  siblings: "Siblings",
+  children: "Children",
+  disease_enemies: "Disease & Enemies",
+  marriage: "Marriage & Relationships",
+  death: "Death & Missing Persons",
+  fortune: "Fortune & Luck",
+  career: "Career & Work",
+  income_wishes: "Income & Wishes",
+  expenditure_legal: "Expenditure, Legal & Jail",
+  theft: "Theft",
+};
+
 export const JUDGEMENT_RULES: JudgementRule[] = [
   {
     id: "R01",
