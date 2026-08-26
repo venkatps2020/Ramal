@@ -22,19 +22,34 @@ function formatDate(iso: string): string {
 }
 
 /** Collapsed-by-default list of the last 10 saved predictions (history itself is capped at 10), shown at the bottom of New Prediction. */
-export default function HistorySummary({ entries }: { entries: HistoryEntry[] }) {
+export default function HistorySummary({ entries, onClear }: { entries: HistoryEntry[]; onClear: () => void }) {
   const [open, setOpen] = useState(false);
   if (entries.length === 0) return null;
 
+  function handleClear() {
+    if (window.confirm("Clear all saved prediction history? This cannot be undone.")) {
+      onClear();
+    }
+  }
+
   return (
     <section className="rounded border border-black/10 p-4 dark:border-white/10">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="text-xs font-medium uppercase tracking-wide text-[#3b4a6b] dark:text-[#93a6d8]"
-      >
-        {open ? "Hide" : "Show"} recent predictions ({entries.length})
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-xs font-medium uppercase tracking-wide text-[#3b4a6b] dark:text-[#93a6d8]"
+        >
+          {open ? "Hide" : "Show"} recent predictions ({entries.length})
+        </button>
+        <button
+          type="button"
+          onClick={handleClear}
+          className="rounded border border-black/15 px-2 py-1 text-[11px] uppercase tracking-wide text-black/60 hover:border-red-600/40 hover:text-red-700 dark:border-white/15 dark:text-white/60 dark:hover:text-red-400"
+        >
+          Clear history
+        </button>
+      </div>
       {open && (
         <ul className="mt-3 space-y-2">
           {entries.map((entry) => {

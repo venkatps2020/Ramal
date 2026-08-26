@@ -553,6 +553,22 @@ predictions (10)") and `localStorage` itself (re-read after load) held
 exactly 10 -- the other 5 were genuinely deleted, not just hidden from
 the list.
 
+**"Clear history" button (2026-08-26)** -- `clearHistory()` existed in
+`history.ts` since this file was first written but nothing ever called
+it (flagged in the project plan as a real gap, not an enhancement idea).
+`HistorySummary` now takes an `onClear` prop and renders a "Clear
+history" button next to the "Show/Hide recent predictions" toggle
+(visible whenever the section is, not just when expanded); clicking it
+asks for confirmation (`window.confirm`, since this is an irreversible
+full wipe of `localStorage` with no undo) before calling `onClear`.
+`new-prediction/page.tsx` wires this to `clearAllHistory()`, which calls
+`clearHistory()` and resets its own `history` state to `[]` in the same
+step, so the section disappears immediately (same `entries.length ===
+0` guard `HistorySummary` already had) rather than needing a reload.
+Verified end-to-end with Playwright: seeded history via `localStorage`,
+clicked Clear history, confirmed the dialog, and confirmed both
+`localStorage` and the UI were empty afterward.
+
 **Judgement Library category jump-nav (`JudgementResults.tsx`)** -- a
 row of pill links at the top of the 40-rule list (one per category that
 actually has rules), each an anchor (`#judgement-cat-<key>`) to that

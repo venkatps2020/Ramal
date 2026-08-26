@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { runPrediction } from "@/lib/engines/predict";
 import { sthirFigureFor } from "@/lib/engines/judgement";
 import { FIGURES } from "@/lib/data/figures";
-import { loadHistory, saveHistoryEntry, type HistoryEntry } from "@/lib/history";
+import { clearHistory, loadHistory, saveHistoryEntry, type HistoryEntry } from "@/lib/history";
 import FigureGlyph from "@/components/FigureGlyph";
 import HouseCombobox from "@/components/HouseCombobox";
 import HouseDetailPanel from "@/components/HouseDetailPanel";
@@ -68,6 +68,11 @@ export default function NewPredictionPage() {
 
   function drawRandom() {
     setFigureIds([randomFigureId(), randomFigureId(), randomFigureId(), randomFigureId()]);
+  }
+
+  function clearAllHistory() {
+    clearHistory();
+    setHistory([]);
   }
 
   function exportCsv() {
@@ -454,7 +459,7 @@ export default function NewPredictionPage() {
       )}
 
       <div className="print:hidden">
-        <HistorySummary entries={history} />
+        <HistorySummary entries={history} onClear={clearAllHistory} />
       </div>
     </div>
   );
