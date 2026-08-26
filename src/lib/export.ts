@@ -1,7 +1,7 @@
 // CSV export of a computed prediction: summary, 16-place Prashna Kundali,
 // calculation trace, and Judgement Library results -- the same three things
 // shown on the New Prediction page, flattened into one downloadable file.
-import { CATEGORY_LABEL, CATEGORY_ORDER, JUDGEMENT_RULES, sthirFigureFor, type JudgementContext } from "@/lib/engines/judgement";
+import { CATEGORY_LABEL, groupedJudgementRows, sthirFigureFor, type JudgementContext } from "@/lib/engines/judgement";
 import { FIGURES } from "@/lib/data/figures";
 import type { AgamNirgam, FigurePattern, PredictionResult } from "@/lib/types";
 
@@ -23,7 +23,7 @@ function figureLabel(pattern: FigurePattern | null): string {
 
 function csvEscape(value: string | number): string {
   const s = String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 function csvRow(cells: (string | number)[]): string {
@@ -104,14 +104,12 @@ export function buildPredictionCsv(input: PredictionExportInput): string {
     const ctx: JudgementContext = { gender: input.gender, motherFigureIds: input.motherFigureIds };
     lines.push(csvRow(["Judgement Library"]));
     lines.push(csvRow(["Item", "Category", "Question", "Answer", "Detail", "Source Status"]));
-    for (const cat of CATEGORY_ORDER) {
-      const rules = JUDGEMENT_RULES.filter((r) => r.category === cat).sort((a, b) => a.itemNo - b.itemNo);
-      for (const rule of rules) {
-        const outcome = rule.compute ? rule.compute(result.chart, ctx) : null;
+    for (const { category, rows } of groupedJudgementRows(result.chart, ctx)) {
+      for (const { rule, outcome } of rows) {
         lines.push(
           csvRow([
             rule.itemNo,
-            CATEGORY_LABEL[cat],
+            CATEGORY_LABEL[category],
             rule.questionEn,
             outcome?.answer ?? "",
             outcome?.detail ?? (rule.sourceNote ? `Not computed -- ${rule.sourceNote}` : ""),

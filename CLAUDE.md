@@ -989,6 +989,82 @@ then clicked Export PDF and screenshotted the page in `emulateMedia:
 chart, result figure, full trace, and all 42 Judgement Library rules
 (across all 13 categories) render on one continuous printable page.
 
+### `calculatedInputs` snapshot (2026-08-26 code review)
+
+A `/code-review` pass on this session's changes found a real bug, worse
+than it first looked: `exportCsv`/`exportPdf`/the on-screen Judgement
+Library were all reading the **live**, still-editable
+`figureIds`/`questionHouse`/`questionType`/`shortTiming`/`gender` state
+instead of whatever `runPrediction()` was actually called with for the
+current `result`. Change any input after clicking Calculate but before
+exporting (or before the Judgement Library section even renders), and
+the report becomes internally inconsistent -- worst case, **R42
+(`itemNo: 42`) rebuilds its own chart from `ctx.motherFigureIds` and
+ignores the `chart` param entirely**, so it would show an answer for a
+completely different draw than every other rule and the 16-place chart
+in the very same report/screen. A subtler case: the "House N + House 1
+= Result" working display's `questionHouse !== 5` branch could render
+an arithmetically wrong breakdown if the House dropdown changed after
+Calculate (no crash -- `house1Figure` is always `chart[1]`, never null
+-- but a misleading one).
+
+Fixed by adding a `calculatedInputs` state, snapshotted in `calculate()`
+alongside `setResult()`, and threading it through everywhere that
+displays or exports "the result" instead of the live form state: the
+`JudgementResults` `ctx` prop, the print-only report header, the
+"House N" labels and the house-5-exemption branch, and
+`exportCsv`/`exportPdf`. The live state is still used for the actual
+input *form* controls (figure dropdowns, House combobox, Type/Short
+Timing/Gender toggles) -- those should stay editable and reflect
+whatever the user is about to calculate next, only the *result display*
+needed pinning. Verified end-to-end with Playwright: calculated a
+result, changed the House and a Mother Figure *without* recalculating,
+and confirmed the result display, R42's answer, and the exported CSV
+all still showed the original draw/house, not the newly-edited ones.
+
+The same review also caught real bugs in `exportPdf`'s print lifecycle,
+all now fixed:
+- **Theme restore used a `wasDark` boolean captured before the print
+  dialog opened.** If the user toggled dark/light (via the Navbar) while
+  the dialog was up, restore would silently overwrite their new choice
+  with the stale captured one. Fixed by re-deriving the theme fresh at
+  restore time (`resolveDarkPreference()`, mirrors `layout.tsx`'s
+  `DARK_MODE_INIT` script exactly: read `localStorage['ramal.theme']`,
+  fall back to `matchMedia`) instead of trusting anything captured
+  earlier.
+- **Rapid double-clicking Export PDF stacked two `afterprint` listeners**,
+  each with its own captured `prevTrace`/`prevJudgement` -- fixed with a
+  `pendingPrintRestoreRef`, removing any still-pending listener before
+  registering a new one. That alone wasn't sufficient, though: the
+  *second* click would still capture `prevTrace`/`prevJudgement` from
+  `traceOpen`/`judgementOpen` **after** the first click had already
+  forced them to `true`, so "restore" ended up restoring to "open"
+  instead of the real pre-export state. Fixed with a second ref,
+  `originalOpenStateRef`, that only captures the true original state on
+  whichever click is first in a rapid sequence (i.e. when no restore is
+  already pending) -- a second click reuses that same captured state
+  rather than re-reading now-mutated live state. Verified by mocking
+  `window.print`, clicking Export PDF twice within 50ms, and dispatching
+  a single `afterprint` -- confirmed Trace/Judgement Library end up
+  closed, not stuck open.
+- **The 100ms `setTimeout` before calling `window.print()`** (to let the
+  forced `setTraceOpen`/`setJudgementOpen` reach the DOM first) was the
+  same class of fixed-delay race already fixed once on the restore side
+  by switching to the `afterprint` event -- a slow device or a much
+  larger Judgement Library could still be mid-render at a guessed 100ms.
+  Replaced with a double `requestAnimationFrame` (wait two paint cycles),
+  which waits for an actual signal rather than a guessed duration.
+
+**Reuse fix (not a bug, but the same review pass)**: `JudgementResults.tsx`
+(on-screen) and `export.ts` (CSV/PDF) each had their own copy of "filter
+`JUDGEMENT_RULES` by category in `CATEGORY_ORDER`, sort by itemNo within
+each, call `rule.compute()`" -- two implementations of the same grouping
+logic that could silently drift apart. Extracted into
+`groupedJudgementRows(chart, ctx)` in `judgement.ts` (returns
+`{ category, rows: { rule, outcome }[] }[]`, empty categories omitted),
+used by both call sites now, with its own dedicated tests in
+`judgement.test.ts` (coverage/ordering/omits-empty/computes-correctly).
+
 ## Not yet built (see project plan for the full phased roadmap)
 
 - Excel import/versioning/admin approval workflow (spec §18) -- v1 ships

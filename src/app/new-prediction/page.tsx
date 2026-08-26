@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { runPrediction } from "@/lib/engines/predict";
 import { sthirFigureFor } from "@/lib/engines/judgement";
 import { FIGURES } from "@/lib/data/figures";
@@ -42,6 +42,20 @@ function randomFigureId(): number {
   return Math.floor(Math.random() * 16) + 1;
 }
 
+interface CalculatedInputs {
+  figureIds: [number, number, number, number];
+  questionHouse: number;
+  questionType: AgamNirgam;
+  shortTiming: boolean;
+  gender: "FEMALE" | "MALE";
+}
+
+/** Mirrors layout.tsx's DARK_MODE_INIT script -- the single source of truth for "what theme should this page be in right now", used to restore the real theme after exportPdf's print-only light-mode override, instead of trusting a value captured before the print dialog opened (which can go stale if the user toggles theme while the dialog is up). */
+function resolveDarkPreference(): boolean {
+  const stored = window.localStorage.getItem("ramal.theme");
+  return stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
 export default function NewPredictionPage() {
   const [figureIds, setFigureIds] = useState<[number, number, number, number]>([1, 2, 3, 4]);
   const [questionHouse, setQuestionHouse] = useState(1);
@@ -50,12 +64,32 @@ export default function NewPredictionPage() {
   const [gender, setGender] = useState<"FEMALE" | "MALE">("FEMALE");
   const [houseDetailOpen, setHouseDetailOpen] = useState(false);
   const [result, setResult] = useState<PredictionResult | null>(null);
+  // The exact inputs runPrediction() was actually called with for the current
+  // `result` -- snapshotted at Calculate time, separate from the live,
+  // still-editable figureIds/questionHouse/etc. above. Everything that
+  // displays or exports "the result" (Judgement Library, the working
+  // breakdown, CSV/PDF export) must read from this snapshot, not the live
+  // state, or it can silently show a result computed from different inputs
+  // than whatever the form currently displays (e.g. R42 rebuilds its own
+  // chart from ctx.motherFigureIds -- if that's live state instead of this
+  // snapshot, it can disagree with every other rule in the same report).
+  const [calculatedInputs, setCalculatedInputs] = useState<CalculatedInputs | null>(null);
   const [traceOpen, setTraceOpen] = useState(false);
   const [judgementOpen, setJudgementOpen] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const pendingPrintRestoreRef = useRef<(() => void) | null>(null);
+  const originalOpenStateRef = useRef<{ trace: boolean; judgement: boolean } | null>(null);
 
   useEffect(() => {
     setHistory(loadHistory());
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pendingPrintRestoreRef.current) {
+        window.removeEventListener("afterprint", pendingPrintRestoreRef.current);
+      }
+    };
   }, []);
 
   function setFigureAt(index: number, id: number) {
@@ -76,42 +110,66 @@ export default function NewPredictionPage() {
   }
 
   function exportCsv() {
-    if (!result) return;
+    if (!result || !calculatedInputs) return;
     const csv = buildPredictionCsv({
       createdAt: new Date().toISOString(),
-      motherFigureIds: figureIds,
-      questionHouse,
-      questionType,
-      shortTiming,
-      gender,
+      motherFigureIds: calculatedInputs.figureIds,
+      questionHouse: calculatedInputs.questionHouse,
+      questionType: calculatedInputs.questionType,
+      shortTiming: calculatedInputs.shortTiming,
+      gender: calculatedInputs.gender,
       result,
     });
     downloadTextFile(`ramal-prediction-${Date.now()}.csv`, "text/csv;charset=utf-8", csv);
   }
 
   function exportPdf() {
-    const wasDark = document.documentElement.classList.contains("dark");
-    const prevTrace = traceOpen;
-    const prevJudgement = judgementOpen;
-    if (wasDark) document.documentElement.classList.remove("dark");
+    // Single-flight: a rapid second click drops the first click's pending
+    // restore rather than letting both fire and race each other -- but the
+    // ORIGINAL trace/judgement open-state must only be captured once, on
+    // whichever click is first in the sequence. A second click sees
+    // traceOpen/judgementOpen already forced true by the first click, so
+    // re-reading them here would capture "open" as the thing to restore to
+    // instead of the real pre-export state.
+    if (pendingPrintRestoreRef.current) {
+      window.removeEventListener("afterprint", pendingPrintRestoreRef.current);
+      pendingPrintRestoreRef.current = null;
+    } else {
+      originalOpenStateRef.current = { trace: traceOpen, judgement: judgementOpen };
+    }
+    const { trace: prevTrace, judgement: prevJudgement } = originalOpenStateRef.current!;
+
+    if (document.documentElement.classList.contains("dark")) document.documentElement.classList.remove("dark");
     setTraceOpen(true);
     setJudgementOpen(true);
 
     function restore() {
-      if (wasDark) document.documentElement.classList.add("dark");
+      // Re-derive the theme fresh (not from a value captured before the
+      // print dialog opened) -- it can go stale if the user toggles theme,
+      // or navigates away and back, while the dialog is up.
+      document.documentElement.classList.toggle("dark", resolveDarkPreference());
       setTraceOpen(prevTrace);
       setJudgementOpen(prevJudgement);
       window.removeEventListener("afterprint", restore);
+      pendingPrintRestoreRef.current = null;
+      originalOpenStateRef.current = null;
     }
     // afterprint (not print()'s return, which some browsers don't block on) is
     // the reliable signal that the print dialog has closed either way.
     window.addEventListener("afterprint", restore);
-    setTimeout(() => window.print(), 100);
+    pendingPrintRestoreRef.current = restore;
+
+    // Wait two paint cycles for the forced setTraceOpen/setJudgementOpen
+    // above to actually reach the DOM before printing, rather than guessing
+    // a fixed delay (a slow device or a much larger Judgement Library could
+    // still be mid-render at a fixed 100ms).
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
   }
 
   function calculate() {
     const r = runPrediction({ draw: { figureIds }, questionHouse, questionType, shortTiming });
     setResult(r);
+    setCalculatedInputs({ figureIds, questionHouse, questionType, shortTiming, gender });
     setTraceOpen(false);
     setHistory(
       saveHistoryEntry({
@@ -269,9 +327,11 @@ export default function NewPredictionPage() {
             <h2 className="font-display text-lg font-semibold">Ramal Prediction Report</h2>
             <p className="text-xs text-black/60">
               Generated {new Date().toLocaleString()} -- Mother Figures{" "}
-              {figureIds.map((id) => `${id} ${figureById(id).sourceName}`).join(", ")} -- House {questionHouse} --{" "}
-              {questionType === "AGAM" ? "Agam" : "Nirgam"} -- Short Timing: {shortTiming ? "Yes" : "No"} -- Gender:{" "}
-              {gender === "FEMALE" ? "Female" : "Male"}
+              {calculatedInputs!.figureIds.map((id) => `${id} ${figureById(id).sourceName}`).join(", ")} -- House{" "}
+              {calculatedInputs!.questionHouse} --{" "}
+              {calculatedInputs!.questionType === "AGAM" ? "Agam" : "Nirgam"} -- Short Timing:{" "}
+              {calculatedInputs!.shortTiming ? "Yes" : "No"} -- Gender:{" "}
+              {calculatedInputs!.gender === "FEMALE" ? "Female" : "Male"}
             </p>
           </div>
 
@@ -324,9 +384,9 @@ export default function NewPredictionPage() {
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                 <span className="flex items-center gap-1.5 rounded border border-black/10 px-2 py-1 dark:border-white/10">
                   <FigureGlyph pattern={result.questionHouseFigure!} className="text-[#3b4a6b] dark:text-[#93a6d8]" />
-                  House {questionHouse}: {shakalName(result.questionHouseFigure)}
+                  House {calculatedInputs!.questionHouse}: {shakalName(result.questionHouseFigure)}
                 </span>
-                {questionHouse !== 5 && (
+                {calculatedInputs!.questionHouse !== 5 && (
                   <>
                     <span className="text-black/40 dark:text-white/40">+</span>
                     <span className="flex items-center gap-1.5 rounded border border-black/10 px-2 py-1 dark:border-white/10">
@@ -341,7 +401,7 @@ export default function NewPredictionPage() {
                   Result: {shakalName(result.resultFigure)}
                 </span>
               </div>
-              {questionHouse === 5 && (
+              {calculatedInputs!.questionHouse === 5 && (
                 <p className="mt-1 text-xs italic text-black/45 dark:text-white/45">
                   House 5 is exempt from adding House 1 -- the house&apos;s own figure is the result.
                 </p>
@@ -450,7 +510,10 @@ export default function NewPredictionPage() {
               </p>
               {judgementOpen && (
                 <div className="mt-3">
-                  <JudgementResults chart={result.chart} ctx={{ gender, motherFigureIds: figureIds }} />
+                  <JudgementResults
+                    chart={result.chart}
+                    ctx={{ gender: calculatedInputs!.gender, motherFigureIds: calculatedInputs!.figureIds }}
+                  />
                 </div>
               )}
             </div>

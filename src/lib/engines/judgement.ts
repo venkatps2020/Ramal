@@ -960,3 +960,30 @@ export const JUDGEMENT_RULES: JudgementRule[] = [
     },
   },
 ];
+
+export interface JudgementRow {
+  rule: JudgementRule;
+  outcome: JudgementOutcome | null;
+}
+
+export interface JudgementCategoryGroup {
+  category: JudgementCategory;
+  rows: JudgementRow[];
+}
+
+/**
+ * Groups JUDGEMENT_RULES by CATEGORY_ORDER (itemNo-sorted within each,
+ * empty categories omitted) and computes every rule's outcome against one
+ * chart/ctx. Shared between JudgementResults.tsx (on-screen rendering) and
+ * export.ts (CSV/PDF) so both iterate and call compute() exactly once, the
+ * same way, instead of maintaining two separate implementations of the same
+ * grouping/sorting/computing logic that could drift apart.
+ */
+export function groupedJudgementRows(chart: PrashnaChart, ctx: JudgementContext): JudgementCategoryGroup[] {
+  return CATEGORY_ORDER.map((category) => ({
+    category,
+    rows: JUDGEMENT_RULES.filter((r) => r.category === category)
+      .sort((a, b) => a.itemNo - b.itemNo)
+      .map((rule) => ({ rule, outcome: rule.compute ? rule.compute(chart, ctx) : null })),
+  })).filter((group) => group.rows.length > 0);
+}

@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   JUDGEMENT_RULES,
+  CATEGORY_ORDER,
+  groupedJudgementRows,
   traceConcernOrigin,
   forecastUpcomingYear,
   isDakhilOrSabit,
@@ -310,5 +312,49 @@ describe("JUDGEMENT_RULES registry", () => {
     const r42 = JUDGEMENT_RULES.find((r) => r.id === "R42")!;
     const outcome = r42.compute!(chart, {});
     expect(outcome.answer).toContain("Mother Figures");
+  });
+});
+
+describe("groupedJudgementRows", () => {
+  // Shared by JudgementResults.tsx (UI) and export.ts (CSV/PDF) -- both rely
+  // on this producing the exact same grouping/sorting/compute output every
+  // time, so a regression here would silently desync the on-screen library
+  // from the exported one.
+  it("covers every rule exactly once, in category order, itemNo-sorted within each category", () => {
+    const { chart } = buildPrashnaKundali(SAMPLE_DRAW);
+    const groups = groupedJudgementRows(chart, { gender: "FEMALE", motherFigureIds: SAMPLE_DRAW });
+
+    const allRuleIds = groups.flatMap((g) => g.rows.map((r) => r.rule.id));
+    expect(new Set(allRuleIds).size).toBe(JUDGEMENT_RULES.length);
+    expect(allRuleIds.length).toBe(JUDGEMENT_RULES.length);
+
+    const seenCategories = groups.map((g) => g.category);
+    const expectedOrder = CATEGORY_ORDER.filter((cat) => seenCategories.includes(cat));
+    expect(seenCategories).toEqual(expectedOrder);
+
+    for (const group of groups) {
+      const itemNos = group.rows.map((r) => r.rule.itemNo);
+      expect(itemNos).toEqual([...itemNos].sort((a, b) => a - b));
+    }
+  });
+
+  it("omits categories with zero rules rather than returning empty groups", () => {
+    const { chart } = buildPrashnaKundali(SAMPLE_DRAW);
+    const groups = groupedJudgementRows(chart, {});
+    for (const group of groups) {
+      expect(group.rows.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("computes an outcome for every rule that has a compute function, using the passed ctx", () => {
+    const { chart } = buildPrashnaKundali(SAMPLE_DRAW);
+    const groups = groupedJudgementRows(chart, { gender: "MALE", motherFigureIds: SAMPLE_DRAW });
+    for (const { rule, outcome } of groups.flatMap((g) => g.rows)) {
+      if (rule.compute) {
+        expect(outcome).not.toBeNull();
+      } else {
+        expect(outcome).toBeNull();
+      }
+    }
   });
 });
