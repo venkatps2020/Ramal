@@ -599,13 +599,32 @@ unlike everything else in this app.
 etymology guesses instead, each tagged `high` / `medium` / `uncertain`
 confidence, rendered as a new "English gloss" column in
 `StihirKundaliTable` styled progressively lighter/italic the less
-confident it is (e.g. Faraha = "Joy", high confidence, renders plainly;
-Lahyan/Ankeesh/Uputul-* show "No confident translation identified" in
-muted italics rather than a fabricated guess). An explicit caveat line
-above the table states the column is not sourced data. Kept in its own
-file, never merged into `figures.ts`'s `meaning` field (which *is*
-sourced, from the workbook's Dakhil/Kharij/Sabit/Munqalib scale) so the
-two are never confused.
+confident it is (e.g. Faraha = "Joy", high confidence, renders plainly).
+An explicit caveat line above the table states the column is mostly not
+sourced data. Kept in its own file, never merged into `figures.ts`'s
+`meaning` field (which *is* sourced, from the workbook's
+Dakhil/Kharij/Sabit/Munqalib scale) so the two are never confused.
+
+**Five entries corrected by the owner directly (2026-08-26)**: Lahyan
+(1), Ukla (6), Ankeesh (7), Uputul-Kharij (12), and Uputul-Dakhil (14)
+were originally left `uncertain` ("No confident translation
+identified") -- no confident guess could be made for these five. The
+owner supplied direct translations (Lahyan = "Beard", traditional
+Indian association "Eloquent One"; Ukla = "Bond / Knot / Closed Circle
+/ Link"; Ankeesh = "Reversed / Inverted / Turned"; Uputul-Kharij =
+"Outer Threshold", tracing the "Uputul" root to "Ataba" = threshold;
+Uputul-Dakhil = "Inner Threshold" likewise), which `FigureNameGloss`
+now records with a `source: "owner"` field (distinct from the
+`confidence` tier) -- bumped to `high` confidence on that basis, same
+standing as the item 3 troublesome-years table and the Dhruvank
+Questions text elsewhere in this project (an owner-supplied
+correction, not a re-derived guess). Both `FigureDetailPanel` and
+`StihirKundaliTable` render an explicit "(owner-confirmed)" tag next to
+these five instead of the blanket "(unverified etymology)" every other
+entry still carries, so the UI doesn't misrepresent an owner-confirmed
+translation as an unverified guess. This is a gloss-only correction --
+`figures.ts`'s own sourced `sourceName` field (Uputul-Kharij /
+Uputul-Dakhil, etc.) is untouched.
 
 ## House search (`lib/house-search.ts`)
 

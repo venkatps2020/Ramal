@@ -35,9 +35,9 @@ export default function StihirKundaliTable({ chart }: { chart?: PrashnaChart | n
         {chart && " Rows highlighted below appear somewhere in the current 16-place Prashna Kundali."}
       </p>
       <p className="mt-1 text-xs text-black/45 dark:text-white/45">
-        &quot;English gloss&quot; below is <span className="italic">not</span> a sourced translation -- neither the figure
-        names' original meanings, just a best-effort Arabic/Urdu etymology guess, shown lighter/italic the less
-        confident it is.
+        &quot;English gloss&quot; below is mostly <span className="italic">not</span> a sourced translation -- most
+        entries are a best-effort Arabic/Urdu etymology guess, shown lighter/italic the less confident it is. A few
+        (marked &quot;owner-confirmed&quot;) were supplied directly by the project owner instead.
       </p>
       <button
         type="button"
@@ -86,6 +86,9 @@ export default function StihirKundaliTable({ chart }: { chart?: PrashnaChart | n
                   <td className="px-3 py-2 font-medium">{f.sourceName}</td>
                   <td className={`px-3 py-2 text-xs ${GLOSS_STYLE[FIGURE_NAME_GLOSS[f.id].confidence]}`}>
                     {FIGURE_NAME_GLOSS[f.id].gloss}
+                    {FIGURE_NAME_GLOSS[f.id].source === "owner" && (
+                      <span className="ml-1 not-italic text-black/40 dark:text-white/40">(owner-confirmed)</span>
+                    )}
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{f.pattern.join(" ")}</td>
                   <td className="px-3 py-2">{f.lord}</td>

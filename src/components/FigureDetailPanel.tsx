@@ -35,7 +35,9 @@ export default function FigureDetailPanel({ figureId }: { figureId: number }) {
           {gloss && (
             <p className={`mt-0.5 text-xs ${GLOSS_STYLE[gloss.confidence]}`}>
               {gloss.gloss}
-              <span className="ml-1 italic text-black/35 dark:text-white/35">(unverified etymology)</span>
+              <span className="ml-1 italic text-black/35 dark:text-white/35">
+                {gloss.source === "owner" ? "(owner-confirmed)" : "(unverified etymology)"}
+              </span>
             </p>
           )}
           <p className="mt-1 font-mono text-xs text-black/50 dark:text-white/50">{figure.pattern.join(" ")}</p>
