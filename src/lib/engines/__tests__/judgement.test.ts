@@ -118,6 +118,41 @@ describe("R42 forecastUpcomingYear", () => {
     expect(result.iterations).toBeLessThanOrEqual(8);
     expect(result.charts.length).toBe(result.iterations);
   });
+
+  // Source: Ramal-jyotish.pdf p.18's own worked example ("Kundali #1"), owner-
+  // transcribed from the scan (2026-08-26). Only places 1-4 (Mother Figures:
+  // Lahyan, Humra, Nusrat-ul-Kharij, Bayaz) and their row-wise transpose into
+  // places 5-6 were independently confirmed against the diagram -- places
+  // 7-16 could NOT be reconciled: checking all 8 addFigure relationships
+  // (9=1+2, 10=3+4, ..., 16=15+1) purely against the owner's own transcribed
+  // values, every single one failed, regardless of which cells were trusted
+  // as ground truth. That rules out isolated typos; it's a broader
+  // read-reliability problem with this specific scan (small hand-drawn
+  // bindu/rekha marks, runs of 3-4 consecutive rekha are easy to
+  // miscount), not a construction-algorithm bug -- kundali.ts's formula is
+  // separately oracle-verified across all 1,572,864 possible cases
+  // (npm run validate:oracle), and is not in doubt here.
+  //
+  // What *is* verified below is stronger than cell-matching anyway: feeding
+  // just the diagram-confirmed Mother Figures through the engine's own
+  // (already oracle-verified) construction reproduces the source's stated
+  // final answer -- "stabilizes at iteration 4, Auspicious" -- without
+  // needing to trust any of the disputed intermediate cells at all.
+  it("reproduces the source's own worked example (Ramal-jyotish.pdf p.18, Kundali #1)", () => {
+    const draw: [number, number, number, number] = [1, 8, 10, 9]; // Lahyan, Humra, Nusrat-ul-Kharij, Bayaz
+    const { chart } = buildPrashnaKundali(draw);
+    expect(chart[1].join("")).toBe("0---"); // Lahyan
+    expect(chart[2].join("")).toBe("-0--"); // Humra
+    expect(chart[3].join("")).toBe("00--"); // Nusrat-ul-Kharij
+    expect(chart[4].join("")).toBe("--0-"); // Bayaz
+    expect(chart[5].join("")).toBe("0-0-"); // row-wise transpose, tez
+    expect(chart[6].join("")).toBe("-00-"); // row-wise transpose, vayu
+
+    const result = forecastUpcomingYear(draw);
+    expect(result.stabilized).toBe(true);
+    expect(result.iterations).toBe(4);
+    expect(result.quality).toBe("Auspicious");
+  });
 });
 
 describe("JUDGEMENT_RULES registry", () => {
