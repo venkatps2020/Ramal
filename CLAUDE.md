@@ -41,7 +41,7 @@ src/
     TimingsChart.tsx           -- All 16 Timings blocks, each a collapsed-by-default
                                    16-place Days/Months/Years table; the "Timings" tab of
                                    reference/page.tsx (see below)
-    JudgementResults.tsx       -- Category-grouped rendering of all 40 rules, used by
+    JudgementResults.tsx       -- Category-grouped rendering of all 42 rules, used by
                                    new-prediction/page.tsx (kept as its own component even
                                    with one caller -- see below for why); includes a
                                    category jump-nav (see "New Prediction page additions")
@@ -68,7 +68,7 @@ src/
       timing.ts                 -- Timing lookup + 30-day/12-month normalization
       quick-duration.ts         -- Short Timing quick unit lookup (Prediction!B90:F91)
       predict.ts                -- Orchestrates the full pipeline + calculation trace
-      judgement.ts              -- The 40-rule practical judgement library (PDF-sourced)
+      judgement.ts              -- The 42-rule practical judgement library (PDF-sourced)
       __tests__/                -- 100 Vitest tests: exhaustive combinations,
                                     a real cell-verified workbook benchmark, guards,
                                     the judgement rule registry
@@ -333,16 +333,17 @@ ever regenerated with reordered/added rows, this file needs updating by
 hand to match, there's no defensive fallback here (only 34 short, static
 entries, low regeneration risk in practice).
 
-## Judgement Library (40 rules, `Ramal-jyotish.pdf` "फलादेश"/"प्रगत रमल")
+## Judgement Library (42 rules, `Ramal-jyotish.pdf` "फलादेश"/"प्रगत रमल")
 
 Authority here is the PDF (conceptual/source material per master spec §2),
 not the workbook -- unlike everything else in this app. Every rule was
 re-transcribed from the source pages a second time (not just the first
 orientation pass) before being encoded, and each carries a `sourceStatus`
-(`SOURCE_DIRECT` / `SOURCE_DERIVED`) per the master spec's own Appendix C
-provenance model.
+(`SOURCE_DIRECT` / `SOURCE_DERIVED` / `NEEDS_CONFIRMATION` -- the last used
+for the first time 2026-08-26, by items 16 and 26, see below) per the
+master spec's own Appendix C provenance model.
 
-**All 40 shipped rules are computed live** against a chart built from four
+**All 42 shipped rules are computed live** against a chart built from four
 drawn Mother Figures, using shared primitives (`isDakhilOrSabit`,
 `isKharijOrMunqalib`, `isShubh`, house merges via `addFigure`) plus a few
 bespoke algorithms:
@@ -396,34 +397,49 @@ bespoke algorithms:
   already-verified construction, is a strictly stronger check than the
   prose-only citation it replaces.
 
-**Items 16 and 26 remain removed entirely**, by explicit owner decision
-(2026-08-24): neither has an Excel counterpart to verify against, and per
-the owner's standing rule that verified Excel data is the final authority,
-unverifiable PDF-only content doesn't ship rather than staying
+**Items 16 and 26 were restored 2026-08-26**, both tagged
+`sourceStatus: "NEEDS_CONFIRMATION"` -- the first rules in this file to
+actually use that tier (it existed in the `SourceStatus` type from the
+start but nothing used it until these two). They were originally removed
+entirely by owner decision (2026-08-24): neither has an Excel counterpart
+to verify against, and per the owner's standing rule that verified Excel
+data is the final authority, unverifiable PDF-only content doesn't ship
 half-implemented. (Item 3 was in this category too until it was restored
-2026-08-25 -- see above.) What blocks each of the remaining two, for
-whoever revisits this:
+2026-08-25 -- see above.) What changed for each:
 
-- **Item 16** (number of children, `Ramal-jyotish.pdf` p.15) maps a
-  planetary lord to a count. **Correction (2026-08-26)**: this file
-  previously said only 5 of 9 lords are listed (Sun=4, Moon=2, Jupiter=3,
-  Venus=6, Saturn=1) -- re-verified directly against the scan at high zoom
-  and that was a transcription error from an earlier session. The source
-  actually lists **six** lords: Sun=4, Moon=**5**, **Mercury=2** (previously
-  missing entirely -- its value had been misattributed to Moon), Jupiter=3,
-  Venus=6, Saturn=1. Only **Mars, Rahu, Ketu** remain unlisted (3, not 4).
-  Checked and ruled out "the missing lords never occur here" as an
-  explanation -- all 9 lords (including Mars/Rahu/Ketu) are structurally
-  possible outcomes of `traceConcernOrigin`'s origin figure. Still blocked
-  on the owner supplying counts for those 3 specific lords.
-- **Item 26** (thief inside/outside, `Ramal-jyotish.pdf` p.16) -- the
-  source's own phrasing ("count hidden tattvas... add [मेल करें, confirmed
-  2026-08-26 -- not a misread of "subtract"] the revealed tattva count...
-  divide by 3") sums to a mathematical constant (16 places x 4 symbols = 64,
-  always) regardless of the chart, so it can't be the rule as transcribed.
-  Would need either a different edition/source with different wording, or
-  the owner's own knowledge of the traditional rule if this book's
-  phrasing is itself an error.
+- **Item 16** (`R16`, number of children, `Ramal-jyotish.pdf` p.15) maps a
+  planetary lord -- via the same `traceConcernOrigin` method item 1 uses --
+  to a child count. This file previously said only 5 of 9 lords are listed
+  (Sun=4, Moon=2, Jupiter=3, Venus=6, Saturn=1) -- **that was itself a
+  transcription error**, re-verified 2026-08-26 directly against the scan
+  at high zoom (right up against the paragraph's own box border, so
+  nothing was truncated). The source actually lists **six** lords: Sun=4,
+  Moon=**5**, **Mercury=2** (previously missing entirely -- its value had
+  been misattributed to Moon), Jupiter=3, Venus=6, Saturn=1 -- all six now
+  in `CHILDREN_COUNT_BY_LORD_BOOK` (`judgement-reference.ts`). The owner
+  separately supplied Mars=4 from a different, independent Ramal source
+  (not this book) -- kept in its own `CHILDREN_COUNT_BY_LORD_ALT` table,
+  never merged into the book table, and `R16`'s own `compute()` flags it
+  explicitly in the per-draw `detail` string ("value from an alternate
+  source, not Ramal-jyotish.pdf itself") whenever that specific lord comes
+  up, not just in the rule-level `sourceNote`. Rahu and Ketu are still
+  genuinely unknown -- checked and ruled out "they never occur here" as an
+  explanation (all 9 lords, including Rahu/Ketu, are structurally possible
+  outcomes) -- `R16` returns `"Not yet known"` for those two rather than
+  guessing, tested explicitly in `judgement.test.ts`.
+- **Item 26** (`R26`, thief inside/outside, `Ramal-jyotish.pdf` p.16) --
+  the book's own phrasing ("count hidden tattvas... add [मेल करें,
+  re-confirmed 2026-08-26 -- not a misread of "subtract"] the revealed
+  tattva count... divide by 3") sums to a mathematical constant (16 places
+  x 4 symbols = 64, always) regardless of the chart, so it can't be the
+  rule as transcribed -- confirmed computationally in `judgement.test.ts`.
+  The owner supplied an alternate formula from a different, independent
+  source instead: `(hidden-tattva count x 2) + revealed-tattva count`,
+  divide by 3 -- verified computationally to actually vary by chart (0/1/2
+  remainders across sample draws, not always 1), so `R26` implements that
+  formula instead of the book's. Not confirmed against the primary
+  Ramal-jyotish.pdf lineage this app otherwise follows, hence
+  `NEEDS_CONFIRMATION` rather than `SOURCE_DIRECT`.
 
 **Caught and fixed during review**: items 33 and 39 were first implemented
 testing Dakhil/Sabit like most of the other rules, but the source actually
@@ -435,7 +451,7 @@ specifically to catch this class of transcription slip again.
 
 Per owner request (2026-08-25, "given that these are predictions based on
 4 chosen mother figures, can these not appear below the Calculation
-trace"): the 40-rule Judgement Library renders on `new-prediction/page.tsx`,
+trace"): the 42-rule Judgement Library renders on `new-prediction/page.tsx`,
 directly below "Show calculation trace", behind its own "Show Judgement
 Library" toggle (collapsed by default). It runs against `result.chart` --
 the exact same 16-place chart the Yes/No prediction and timing were
@@ -451,7 +467,7 @@ Short Timing per owner instruction -- it's only read by Judgement item 21
 four-figure picker and "Draw random" button, reachable from a "Judgement
 Library" nav tab -- removed by owner decision (2026-08-25, "can we remove
 Judgement Library tab?") once the same results became reachable from New
-Prediction, since maintaining a second entry point to the same 40 rules
+Prediction, since maintaining a second entry point to the same 42 rules
 was redundant. The category-grouped rendering (13 categories, one card
 per rule with question/answer/detail/`sourceStatus` pill) had already
 been extracted into a standalone `JudgementResults` component (`chart` +
@@ -461,7 +477,7 @@ link -- `JudgementResults` itself needed no changes and is kept as its
 own component rather than inlined back into `new-prediction/page.tsx`,
 in case a second entry point is wanted again later.
 
-**Trade-off worth knowing**: the standalone page let you see all 40
+**Trade-off worth knowing**: the standalone page let you see all 42
 answers from just four figures, with no house/question/Short Timing
 needed. On New Prediction, the Judgement Library section only appears
 *after* clicking Calculate (it's nested inside the `result &&` block),
@@ -581,9 +597,9 @@ clicked Clear history, confirmed the dialog, and confirmed both
 `localStorage` and the UI were empty afterward.
 
 **Judgement Library category jump-nav (`JudgementResults.tsx`)** -- a
-row of pill links at the top of the 40-rule list (one per category that
+row of pill links at the top of the 42-rule list (one per category that
 actually has rules), each an anchor (`#judgement-cat-<key>`) to that
-category's section, since scrolling through all 13 categories/40 rules
+category's section, since scrolling through all 13 categories/42 rules
 in one long list was the "smaller UX polish" flagged when this
 enhancement list was first discussed.
 
@@ -928,7 +944,7 @@ key first -- that part of the original deferral still stands.
 Two buttons ("Download CSV" / "Export PDF") appear in the result section
 once a prediction has been calculated, per the owner's queued 2026-08-27
 enhancement list. Both export the same three things shown on-screen: the
-16-place Prashna Kundali, the calculation trace, and all 40 Judgement
+16-place Prashna Kundali, the calculation trace, and all 42 Judgement
 Library results (computed against the same chart/ctx, not re-drawn) --
 plus a summary block (Mother Figures, house, type, Short Timing, gender,
 status, timing).
@@ -970,7 +986,7 @@ real UI (draw 2,8,4,9, house 7, Nirgam -- the same benchmark draw as
 file's content byte-matches the chart/trace already verified elsewhere,
 then clicked Export PDF and screenshotted the page in `emulateMedia:
 "print"` mode -- confirmed the Navbar/inputs/toggles are gone and the
-chart, result figure, full trace, and all 40 Judgement Library rules
+chart, result figure, full trace, and all 42 Judgement Library rules
 (across all 13 categories) render on one continuous printable page.
 
 ## Not yet built (see project plan for the full phased roadmap)

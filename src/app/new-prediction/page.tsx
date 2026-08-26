@@ -445,7 +445,7 @@ export default function NewPredictionPage() {
                 {judgementOpen ? "Hide Judgement Library" : "Show Judgement Library"}
               </button>
               <p className="mt-1 text-xs text-black/45 dark:text-white/45 print:hidden">
-                40 practical judgement rules (loans, property, marriage, theft, and more) computed
+                42 practical judgement rules (loans, property, marriage, theft, and more) computed
                 live against these same four Mother Figures.
               </p>
               {judgementOpen && (

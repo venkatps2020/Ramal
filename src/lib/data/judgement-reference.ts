@@ -48,6 +48,33 @@ export const TROUBLESOME_YEARS_TABLE: Record<number, number[]> = {
   11: [6, 14, 18, 20, 22, 26, 34, 46, 48, 64, 68, 70, 73, 77],
 };
 
+/**
+ * Item 16 (संतान संख्या / number of children), keyed by planetary lord name
+ * (matches Figure.lord). Two provenance tiers, kept separate:
+ * - CHILDREN_COUNT_BY_LORD_BOOK: six values direct from Ramal-jyotish.pdf
+ *   p.15 (owner re-verified 2026-08-26 at high zoom -- an earlier
+ *   transcription had Mercury missing entirely and Moon's value wrong,
+ *   see CLAUDE.md).
+ * - CHILDREN_COUNT_BY_LORD_ALT: owner-supplied from a different,
+ *   independent Ramal source (2026-08-26), not confirmed against this
+ *   book -- currently just Mars.
+ * Rahu and Ketu are absent from both; both are structurally reachable
+ * outcomes of traceConcernOrigin (checked), so item 16 stays
+ * NEEDS_CONFIRMATION until they're found.
+ */
+export const CHILDREN_COUNT_BY_LORD_BOOK: Record<string, number> = {
+  Sun: 4,
+  Moon: 5,
+  Mercury: 2,
+  Jupiter: 3,
+  Venus: 6,
+  Saturn: 1,
+};
+
+export const CHILDREN_COUNT_BY_LORD_ALT: Record<string, number> = {
+  Mars: 4,
+};
+
 /** Item 2 (आयु मर्यादा / life expectancy), keyed by [nature, isShubh]. */
 export const AGE_EXPECTANCY_TABLE: Record<string, { age: string; health: string }> = {
   "DAKHIL:shubh": { age: "80+ years", health: "good" },

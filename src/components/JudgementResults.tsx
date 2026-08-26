@@ -19,7 +19,7 @@ function categoryAnchor(cat: JudgementCategory): string {
   return `judgement-cat-${cat}`;
 }
 
-/** All 40 Judgement Library rules, computed live against one chart and grouped by category. Shared between /judgement and the New Prediction trace. */
+/** All 42 Judgement Library rules, computed live against one chart and grouped by category. Shared between /judgement and the New Prediction trace. */
 export default function JudgementResults({ chart, ctx }: { chart: PrashnaChart; ctx: JudgementContext }) {
   const presentCategories = CATEGORY_ORDER.filter((cat) => JUDGEMENT_RULES.some((r) => r.category === cat));
 

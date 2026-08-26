@@ -7,18 +7,34 @@
 // the workbook. Every rule below is transcribed from the source text kept
 // alongside it in comments.
 //
-// Items 16 (संतान संख्या) and 26 (चोर घर का या बाहर का) were removed by
-// owner decision -- their source text can't be verified against Ramal
-// Calculation.xlsx (no Excel counterpart exists for either), and per the
-// owner's standing rule that verified Excel data is the final authority,
-// unverifiable PDF-only content doesn't ship. Item 3 (कष्टकारक साल) was
-// removed for the same reason initially (the source page's hand-drawn
-// shakal glyphs were illegible), then restored once the owner supplied a
-// page-13 transcription with each shakal hand-encoded as an explicit
-// bit-pattern -- see TROUBLESOME_YEARS_TABLE in judgement-reference.ts.
-// itemNo therefore runs 1-42 with 16 and 26 absent, not 1-39/1-40.
+// Items 16 (संतान संख्या) and 26 (चोर घर का या बाहर का) were originally
+// removed by owner decision -- their source text couldn't be fully
+// verified against Ramal Calculation.xlsx (no Excel counterpart exists for
+// either), and per the owner's standing rule that verified Excel data is
+// the final authority, unverifiable PDF-only content doesn't ship
+// half-implemented. Item 3 (कष्टकारक साल) was removed for the same reason
+// initially (the source page's hand-drawn shakal glyphs were illegible),
+// then restored once the owner supplied a page-13 transcription with each
+// shakal hand-encoded as an explicit bit-pattern -- see
+// TROUBLESOME_YEARS_TABLE in judgement-reference.ts.
+//
+// Items 16 and 26 were restored 2026-08-26, both tagged
+// sourceStatus: "NEEDS_CONFIRMATION" rather than SOURCE_DIRECT (the first
+// rules in this file to use that tier): item 16 covers 7 of 9 planetary
+// lords (6 direct from the book, 1 -- Mars -- from an independent
+// alternate source; Rahu/Ketu still unknown), and item 26 uses an
+// alternate-source formula since the book's own formula is confirmed
+// mathematically degenerate. See CHILDREN_COUNT_BY_LORD_BOOK/_ALT in
+// judgement-reference.ts and each rule's own sourceNote for the full
+// provenance breakdown.
 import { FIGURES } from "@/lib/data/figures";
-import { ABJAD_ORDER, AGE_EXPECTANCY_TABLE, TROUBLESOME_YEARS_TABLE } from "@/lib/data/judgement-reference";
+import {
+  ABJAD_ORDER,
+  AGE_EXPECTANCY_TABLE,
+  CHILDREN_COUNT_BY_LORD_ALT,
+  CHILDREN_COUNT_BY_LORD_BOOK,
+  TROUBLESOME_YEARS_TABLE,
+} from "@/lib/data/judgement-reference";
 import { addFigure, patternsEqual } from "@/lib/engines/figure";
 import { buildPrashnaKundali } from "@/lib/engines/kundali";
 import type { Figure, FigureNature, FigurePattern, PrashnaChart } from "@/lib/types";
@@ -521,6 +537,37 @@ export const JUDGEMENT_RULES: JudgementRule[] = [
     },
   },
   {
+    id: "R16",
+    itemNo: 16,
+    questionHi: "संतान संख्या कितनी होगी?",
+    questionEn: "How many children will there be?",
+    category: "children",
+    sourceStatus: "NEEDS_CONFIRMATION",
+    sourceNote:
+      "Uses the same trace-to-origin method as item 1 (Ramal-jyotish.pdf p.15: \"whichever figure results from the 15th-place trace, its lord gives the count\"). Six lord counts are direct from the book (Sun=4, Moon=5, Mercury=2, Jupiter=3, Venus=6, Saturn=1 -- corrected 2026-08-26, an earlier transcription had Mercury missing entirely and Moon's value wrong, see CLAUDE.md). Mars=4 is from a different, independent source, not this book (owner-supplied 2026-08-26). Rahu and Ketu remain unknown -- both are structurally reachable outcomes of traceConcernOrigin (checked), so this stays NEEDS_CONFIRMATION until they're found.",
+    compute: (chart) => {
+      const trace = traceConcernOrigin(chart);
+      if (!trace || !trace.originFigure) {
+        return { answer: "Cannot trace", detail: "Place 15 is fully hidden -- the source gives no rule for this case." };
+      }
+      const lord = trace.originFigure.lord;
+      const fromBook = CHILDREN_COUNT_BY_LORD_BOOK[lord];
+      const count = fromBook ?? CHILDREN_COUNT_BY_LORD_ALT[lord];
+      if (count === undefined) {
+        return {
+          answer: "Not yet known",
+          detail: `Traced to ${trace.originFigure.sourceName} (lord: ${lord}) -- no source value for this lord yet.`,
+        };
+      }
+      return {
+        answer: `${count}`,
+        detail: `Traced to ${trace.originFigure.sourceName} (lord: ${lord})${
+          fromBook === undefined ? " -- value from an alternate source, not Ramal-jyotish.pdf itself" : ""
+        }.`,
+      };
+    },
+  },
+  {
     id: "R17",
     itemNo: 17,
     questionHi: "प्रेम में सफलता मिलेगी?",
@@ -655,6 +702,27 @@ export const JUDGEMENT_RULES: JudgementRule[] = [
       return {
         answer: notStolen ? "No theft -- look for it at home" : "Theft occurred",
         detail: `House 7: ${fig?.sourceName ?? "?"}.`,
+      };
+    },
+  },
+  {
+    id: "R26",
+    itemNo: 26,
+    questionHi: "अगर चोरी हुई है तो चोर घर का या बाहर का है?",
+    questionEn: "If a theft happened, is the thief a household member, a neighbour, or an outsider?",
+    category: "theft",
+    sourceStatus: "NEEDS_CONFIRMATION",
+    sourceNote:
+      "The book's own formula (Ramal-jyotish.pdf p.16: hidden-tattva count + revealed-tattva count, divide by 3) is mathematically degenerate -- 16 places x 4 symbols = 64 total, always, regardless of the chart, so it always gives remainder 1 (re-verified 2026-08-26: the operative word is definitely \"add\"/मेल करें, not a misread of \"subtract\"). Owner supplied an alternate formula from a different, independent source instead (2026-08-26): (hidden-tattva count x 2) + revealed-tattva count, divide by 3 -- verified computationally to actually vary by chart (0/1/2), unlike the book's version. Not confirmed against the primary Ramal-jyotish.pdf lineage this app otherwise follows -- ships flagged NEEDS_CONFIRMATION pending that.",
+    compute: (chart) => {
+      const places = allPlaces(chart);
+      const hidden = countRekha(places);
+      const revealed = countBindu(places);
+      const remainder = (hidden * 2 + revealed) % 3;
+      const answer = remainder === 1 ? "Thief is a household/own person" : remainder === 2 ? "Thief is a neighbour" : "Thief is an outsider";
+      return {
+        answer,
+        detail: `Hidden tattvas (rekha): ${hidden}, revealed tattvas (bindu): ${revealed}. (${hidden}x2 + ${revealed}) mod 3 = ${remainder}.`,
       };
     },
   },

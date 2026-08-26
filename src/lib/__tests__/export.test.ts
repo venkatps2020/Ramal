@@ -23,7 +23,7 @@ function sampleInput() {
 }
 
 describe("buildPredictionCsv", () => {
-  it("includes the summary, chart, trace, and all 40 Judgement Library rows", () => {
+  it("includes the summary, chart, trace, and all Judgement Library rows", () => {
     const csv = buildPredictionCsv(sampleInput());
     expect(csv).toContain("Ramal Prediction Report");
     expect(csv).toContain("Summary");

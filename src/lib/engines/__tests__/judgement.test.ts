@@ -102,6 +102,80 @@ describe("R27 thief appearance (abjad lookup)", () => {
   });
 });
 
+describe("R16 number of children", () => {
+  // Draws found by brute-force search over all 16^4 combinations, one per
+  // lord, so traceConcernOrigin's origin figure lands on each lord exactly.
+  const DRAW_BY_LORD: Record<string, [number, number, number, number]> = {
+    Sun: [1, 1, 2, 2],
+    Moon: [1, 1, 1, 1],
+    Mercury: [1, 1, 6, 15],
+    Jupiter: [1, 1, 5, 7],
+    Venus: [1, 1, 2, 5],
+    Saturn: [1, 2, 2, 1],
+    Mars: [1, 1, 2, 13],
+    Rahu: [1, 1, 1, 2],
+    Ketu: [1, 1, 2, 3],
+  };
+  const BOOK_COUNTS: Record<string, number> = { Sun: 4, Moon: 5, Mercury: 2, Jupiter: 3, Venus: 6, Saturn: 1 };
+
+  it("returns the book's count for each of the 6 directly-sourced lords", () => {
+    const rule = JUDGEMENT_RULES.find((r) => r.id === "R16")!;
+    for (const [lord, count] of Object.entries(BOOK_COUNTS)) {
+      const { chart } = buildPrashnaKundali(DRAW_BY_LORD[lord]);
+      const outcome = rule.compute!(chart, {});
+      expect(outcome.answer).toBe(`${count}`);
+      expect(outcome.detail).not.toContain("alternate source");
+    }
+  });
+
+  it("returns Mars's count from the alternate source, flagged as such in the detail", () => {
+    const rule = JUDGEMENT_RULES.find((r) => r.id === "R16")!;
+    const { chart } = buildPrashnaKundali(DRAW_BY_LORD.Mars);
+    const outcome = rule.compute!(chart, {});
+    expect(outcome.answer).toBe("4");
+    expect(outcome.detail).toContain("alternate source");
+  });
+
+  it('returns "Not yet known" for Rahu and Ketu, not a guessed number', () => {
+    const rule = JUDGEMENT_RULES.find((r) => r.id === "R16")!;
+    for (const lord of ["Rahu", "Ketu"]) {
+      const { chart } = buildPrashnaKundali(DRAW_BY_LORD[lord]);
+      const outcome = rule.compute!(chart, {});
+      expect(outcome.answer).toBe("Not yet known");
+    }
+  });
+});
+
+describe("R26 thief inside/outside (alternate formula)", () => {
+  it("the book's own formula (hidden+revealed) is always 64, confirming it's degenerate", () => {
+    for (const draw of [SAMPLE_DRAW, [1, 1, 1, 1], [7, 7, 7, 7], [3, 6, 11, 15]] as [number, number, number, number][]) {
+      const { chart } = buildPrashnaKundali(draw);
+      let hidden = 0;
+      let revealed = 0;
+      for (let p = 1; p <= 16; p++) {
+        for (const sym of chart[p]) sym === "-" ? hidden++ : revealed++;
+      }
+      expect(hidden + revealed).toBe(64);
+    }
+  });
+
+  it("the alternate formula ((hidden*2)+revealed mod 3) actually varies by chart", () => {
+    const rule = JUDGEMENT_RULES.find((r) => r.id === "R26")!;
+    const answers = new Set<string>();
+    for (const draw of [
+      [1, 1, 1, 1],
+      [7, 7, 7, 7],
+      [2, 8, 4, 9],
+      [3, 6, 11, 15],
+      [5, 10, 12, 14],
+    ] as [number, number, number, number][]) {
+      const { chart } = buildPrashnaKundali(draw);
+      answers.add(rule.compute!(chart, {}).answer);
+    }
+    expect(answers.size).toBeGreaterThan(1);
+  });
+});
+
 describe("R42 forecastUpcomingYear", () => {
   it("stabilizes immediately (iteration 1, Excellent) for a fully-repeated Jamaat draw", () => {
     // Hand-verified: Jamaat (figure 4) is the all-"-" pattern. Drawing it four
@@ -156,26 +230,30 @@ describe("R42 forecastUpcomingYear", () => {
 });
 
 describe("JUDGEMENT_RULES registry", () => {
-  // Items 16 and 26 were removed by owner decision: no Excel counterpart
-  // exists to verify them against, and unverifiable PDF-only content
-  // doesn't ship. Item 3 was restored (2026-08-25) once the owner supplied
-  // a page-13 transcription with each shakal glyph hand-encoded as a bit
-  // pattern, matched 1:1 against all 16 FIGURES -- see
-  // TROUBLESOME_YEARS_TABLE in judgement-reference.ts. itemNo therefore
-  // runs 1-42 with only 16 and 26 absent.
-  const REMOVED_ITEM_NOS = [16, 26];
+  // Items 16 and 26 were originally removed by owner decision: no Excel
+  // counterpart exists to verify them against, and unverifiable PDF-only
+  // content doesn't ship half-implemented. Item 3 was restored (2026-08-25)
+  // once the owner supplied a page-13 transcription with each shakal glyph
+  // hand-encoded as a bit pattern, matched 1:1 against all 16 FIGURES --
+  // see TROUBLESOME_YEARS_TABLE in judgement-reference.ts.
+  //
+  // Items 16 and 26 were restored 2026-08-26, both tagged
+  // NEEDS_CONFIRMATION rather than SOURCE_DIRECT -- see each rule's own
+  // sourceNote and CHILDREN_COUNT_BY_LORD_BOOK/_ALT in judgement-reference.ts
+  // for the provenance breakdown. itemNo now runs the full 1-42.
 
-  it("has exactly 40 rules, itemNo 1-42 minus {16,26}, unique ids", () => {
-    expect(JUDGEMENT_RULES).toHaveLength(40);
+  it("has exactly 42 rules, itemNo 1-42, unique ids", () => {
+    expect(JUDGEMENT_RULES).toHaveLength(42);
     const itemNos = JUDGEMENT_RULES.map((r) => r.itemNo).sort((a, b) => a - b);
-    const expected = Array.from({ length: 42 }, (_, i) => i + 1).filter((n) => !REMOVED_ITEM_NOS.includes(n));
-    expect(itemNos).toEqual(expected);
-    expect(new Set(JUDGEMENT_RULES.map((r) => r.id)).size).toBe(40);
+    expect(itemNos).toEqual(Array.from({ length: 42 }, (_, i) => i + 1));
+    expect(new Set(JUDGEMENT_RULES.map((r) => r.id)).size).toBe(42);
   });
 
-  it("removed items are genuinely absent, not silently present with a stub", () => {
+  it("R16 and R26 are present and tagged NEEDS_CONFIRMATION, not SOURCE_DIRECT", () => {
     for (const id of ["R16", "R26"]) {
-      expect(JUDGEMENT_RULES.find((r) => r.id === id)).toBeUndefined();
+      const rule = JUDGEMENT_RULES.find((r) => r.id === id);
+      expect(rule).toBeDefined();
+      expect(rule!.sourceStatus).toBe("NEEDS_CONFIRMATION");
     }
   });
 
