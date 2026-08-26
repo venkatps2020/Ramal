@@ -404,15 +404,26 @@ half-implemented. (Item 3 was in this category too until it was restored
 2026-08-25 -- see above.) What blocks each of the remaining two, for
 whoever revisits this:
 
-- **Item 16** (number of children) maps a planetary lord to a count but the
-  source only lists 5 of the 9 possible lords (Sun=4, Moon=2, Jupiter=3,
-  Venus=6, Saturn=1 -- Mercury/Mars/Rahu/Ketu unlisted). Checked and ruled
-  out "the missing 4 lords never occur here" as an explanation -- all 9
-  lords are structurally possible outcomes.
-- **Item 26** (thief inside/outside) -- the source's own phrasing ("count
-  hidden tattvas... add the revealed tattva count... divide by 3") sums to
-  a mathematical constant (total cell count) regardless of the chart, so it
-  can't be the rule as transcribed.
+- **Item 16** (number of children, `Ramal-jyotish.pdf` p.15) maps a
+  planetary lord to a count. **Correction (2026-08-26)**: this file
+  previously said only 5 of 9 lords are listed (Sun=4, Moon=2, Jupiter=3,
+  Venus=6, Saturn=1) -- re-verified directly against the scan at high zoom
+  and that was a transcription error from an earlier session. The source
+  actually lists **six** lords: Sun=4, Moon=**5**, **Mercury=2** (previously
+  missing entirely -- its value had been misattributed to Moon), Jupiter=3,
+  Venus=6, Saturn=1. Only **Mars, Rahu, Ketu** remain unlisted (3, not 4).
+  Checked and ruled out "the missing lords never occur here" as an
+  explanation -- all 9 lords (including Mars/Rahu/Ketu) are structurally
+  possible outcomes of `traceConcernOrigin`'s origin figure. Still blocked
+  on the owner supplying counts for those 3 specific lords.
+- **Item 26** (thief inside/outside, `Ramal-jyotish.pdf` p.16) -- the
+  source's own phrasing ("count hidden tattvas... add [मेल करें, confirmed
+  2026-08-26 -- not a misread of "subtract"] the revealed tattva count...
+  divide by 3") sums to a mathematical constant (16 places x 4 symbols = 64,
+  always) regardless of the chart, so it can't be the rule as transcribed.
+  Would need either a different edition/source with different wording, or
+  the owner's own knowledge of the traditional rule if this book's
+  phrasing is itself an error.
 
 **Caught and fixed during review**: items 33 and 39 were first implemented
 testing Dakhil/Sabit like most of the other rules, but the source actually
