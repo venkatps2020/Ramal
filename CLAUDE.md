@@ -371,13 +371,30 @@ bespoke algorithms:
 - **Item 42** (upcoming year quality) iteratively feeds Places 13/10/11/14
   back in as new Mother Figures 1/2/3/4 until Places 1/2/3/4 equal Places
   13/10/11/14 simultaneously ("Sabit Kundali"), with year quality depending
-  on which iteration stabilizes. Verified two ways: a hand-derived fixture
-  (drawing Jamaat four times stabilizes immediately, iteration 1) and the
-  source's own worked example's *prose* (not its hand-drawn diagrams, which
-  were deliberately not transcribed -- same glyph-legibility risk that
-  originally blocked item 3, see below): it states in words that the chart stabilizes
-  at iteration 4 with quality शुभ/Auspicious, matching this engine's
-  `i === 4` bucket exactly.
+  on which iteration stabilizes. Verified three ways: a hand-derived fixture
+  (drawing Jamaat four times stabilizes immediately, iteration 1); the
+  source's own worked example's prose (Ramal-jyotish.pdf p.18: it states in
+  words that the chart stabilizes at iteration 4 with quality शुभ/Auspicious,
+  matching this engine's `i === 4` bucket exactly); and, as of 2026-08-26,
+  the same worked example's actual starting draw (see
+  `judgement.test.ts`'s "reproduces the source's own worked example" case) --
+  the owner transcribed p.18's four hand-drawn Kundali diagrams from the
+  scan, which confirmed Kundali #1's Mother Figures (Lahyan, Humra,
+  Nusrat-ul-Kharij, Bayaz) and their row-wise transpose (Places 1-6) exactly
+  against `buildPrashnaKundali`, and running that same draw through
+  `forecastUpcomingYear` independently lands on iteration 4, Auspicious --
+  matching the source's stated conclusion. Places 7-16 of that diagram could
+  NOT be reconciled: checking all 8 `addFigure` relationships purely against
+  the owner's own transcription (no assumption about the draw needed) found
+  every single one failed, ruling out isolated transcription typos --
+  concluded to be a scan-legibility problem (small hand-drawn bindu/rekha
+  marks, runs of 3-4 consecutive rekha are easy to miscount), not a
+  construction bug, since `kundali.ts` is separately oracle-verified across
+  all 1,572,864 possible cases. So this still isn't a cell-by-cell diagram
+  match of the full 16-place chart, but reproducing the source's own final
+  answer from its diagram-confirmed starting figures, via the engine's own
+  already-verified construction, is a strictly stronger check than the
+  prose-only citation it replaces.
 
 **Items 16 and 26 remain removed entirely**, by explicit owner decision
 (2026-08-24): neither has an Excel counterpart to verify against, and per
@@ -860,15 +877,69 @@ Do not build a Dhruvank interpretation engine (Judgement Library rules,
 computed answers, etc.) without the owner supplying the missing decoding
 key first -- that part of the original deferral still stands.
 
+## PDF/CSV export of a computed prediction (`lib/export.ts`, `new-prediction/page.tsx`)
+
+Two buttons ("Download CSV" / "Export PDF") appear in the result section
+once a prediction has been calculated, per the owner's queued 2026-08-27
+enhancement list. Both export the same three things shown on-screen: the
+16-place Prashna Kundali, the calculation trace, and all 40 Judgement
+Library results (computed against the same chart/ctx, not re-drawn) --
+plus a summary block (Mother Figures, house, type, Short Timing, gender,
+status, timing).
+
+**CSV** (`buildPredictionCsv` in `lib/export.ts`, RFC 4180-quoted, tested
+in `lib/__tests__/export.test.ts`): one string, four blank-line-separated
+sections (Summary / 16-place Prashna Kundali / Calculation Trace /
+Judgement Library), downloaded via the same Blob + object-URL pattern
+Nameology's bulk-check page already uses (`downloadTextFile`) -- no new
+dependency. `CATEGORY_LABEL`/`CATEGORY_ORDER` were moved from
+`JudgementResults.tsx` into `judgement.ts` so both the UI and the export
+share one canonical category list instead of duplicating it.
+
+**PDF** (`exportPdf` in `new-prediction/page.tsx`): no PDF library --
+reuses the browser's own print-to-PDF (`window.print()`), since the
+report is just the page's own already-rendered chart/trace/Judgement
+Library content and adding a dependency (jsPDF, html2canvas) to
+re-render the same thing as vector/canvas output would be pure
+duplication for no benefit. `print:hidden` (Tailwind's built-in print
+variant, no custom CSS needed beyond `@page { margin: 1.5cm }` in
+`globals.css`) hides the Navbar, all input controls, toggle buttons, and
+History Summary; a `hidden print:block` block shows a print-only report
+header (generated timestamp + the input parameters, since the normal
+input controls are hidden). Two things `exportPdf` must force before
+printing, restored after: it expands Trace/Judgement Library (normally
+collapsed toggles) and strips the `dark` class from `<html>` regardless
+of current theme (dark-mode text on a printer's forced-white background
+would be unreadable) -- **restoring both on the `afterprint` window
+event, not after `window.print()` returns**, since `print()`'s return
+isn't a reliable "dialog closed" signal in every browser; restoring on a
+`setTimeout` after `print()` was tried first and verified (via Playwright
+with `window.print` mocked as a no-op, which doesn't block) to
+prematurely collapse the sections before the real dialog even had a
+chance to render them.
+
+Verified end-to-end with Playwright (not just unit tests): drove the
+real UI (draw 2,8,4,9, house 7, Nirgam -- the same benchmark draw as
+`benchmark.test.ts`), clicked Download CSV and confirmed the downloaded
+file's content byte-matches the chart/trace already verified elsewhere,
+then clicked Export PDF and screenshotted the page in `emulateMedia:
+"print"` mode -- confirmed the Navbar/inputs/toggles are gone and the
+chart, result figure, full trace, and all 40 Judgement Library rules
+(across all 13 categories) render on one continuous printable page.
+
 ## Not yet built (see project plan for the full phased roadmap)
 
 - Excel import/versioning/admin approval workflow (spec §18) -- v1 ships
   the workbook's data pre-extracted as static TS, not a runtime importer.
-- Electron packaging (Nameology has this; not yet wired up here).
-- PDF export, CSV export.
-- Judgement Library item 42's diagram-level fixture (currently verified via
-  the source's prose only, not a cell-by-cell diagram match -- see above).
-
+- Electron packaging -- **not a standalone Ramal wrapper.** Per owner
+  decision (2026-08-26), Ramal will eventually be integrated into
+  Nameology's existing Electron app (`Nameology/nameology-app`) as a
+  separate tab there, rather than getting its own `electron/` +
+  `electron-builder` setup. See Nameology's own
+  `next.config.ts` (`output: 'export'`), `electron/main.js` (custom
+  `app://` protocol + CSP injection), and `electron/preload.js` for how
+  that shell already works -- whoever does the integration should reuse
+  that shell rather than rebuilding it for Ramal.
 ## Dev commands
 
 ```bash
