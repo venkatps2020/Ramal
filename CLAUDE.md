@@ -61,6 +61,10 @@ src/
                                    (searchHouses, single-term) plus a natural-language
                                    multi-word variant (searchHousesByQuestion) -- see
                                    "New Prediction page additions" below
+    export.ts                   -- CSV builder (buildPredictionCsv) + Blob download
+                                   helper for the PDF/CSV export feature -- see
+                                   "PDF/CSV export of a computed prediction" below
+    __tests__/                  -- export.test.ts, house-search.test.ts
     engines/
       figure.ts                -- addBit/addFigure (4-symbol XOR-style addition)
       kundali.ts                -- 16-place construction + validation guards
